@@ -1,4 +1,6 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
@@ -24,24 +26,35 @@ public class Client
 	{
 		while (true)
 		{
-			String[] command = System.console().readLine().split("\\s+");
-			
-			switch (command[0])
+			try
 			{
-				case "STORE":
-					store(command[1]);
-					break;
-				case "LOAD":
-					load(command[1]);
-					break;
-				case "REMOVE":
-					remove(command[1]);
-					break;
-				case "EXIT":
-					System.exit(0);
-				default:
-					System.out.println("Error parsing the command.");
+				System.out.print("<Client> ");
+				BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+				String[] command = br.readLine().split("\\s+");
+				
+				switch (command[0])
+				{
+					case "STORE":
+						store(command[1]);
+						break;
+					case "LOAD":
+						load(command[1]);
+						break;
+					case "REMOVE":
+						remove(command[1]);
+						break;
+					case "--help":
+						System.out.println("Usage: STORE filename");
+						System.out.println("       LOAD filename");
+						System.out.println("       REMOVE filename");
+						break;
+					case "EXIT":
+						System.exit(0);
+					default:
+						System.out.println("Error: Parsing the command. Try --help for usage.");
+				}
 			}
+			catch (IOException e) { System.err.println(e.getMessage()); }
 		}
 	}
 	

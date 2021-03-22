@@ -1,10 +1,11 @@
-import java.io.IOException;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 
@@ -13,6 +14,8 @@ public class Controller
 	private static int cport = -1;
 	private static int R = -1;
 	private static int timeout = -1;
+	
+	private static HashMap<String, MetaData> database = new HashMap<String, MetaData>();
 	
 	//java Controller cport R timeout
 	public static void main(String args[])
@@ -69,5 +72,33 @@ public class Controller
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	public static void saveDatabase()
+	{
+		try
+		{
+			FileOutputStream fileOut = new FileOutputStream("Database.ser");
+			ObjectOutputStream out = new ObjectOutputStream(fileOut);
+			out.writeObject(database);
+			out.close();
+			fileOut.close();
+			System.out.println("<Server> Database saved.");
+		}
+		catch (IOException i) { i.printStackTrace(); }
+	}
+	
+	public static void loadDatabase()
+	{
+		try
+		{
+			FileInputStream fileIn = new FileInputStream("Database.ser");
+			ObjectInputStream in = new ObjectInputStream(fileIn);
+			database = (HashMap<String, MetaData>) in.readObject();
+			in.close();
+			fileIn.close();
+			System.out.println("<Server> Database loaded.");
+		}
+		catch (Exception e) { System.err.println(e.getMessage() + e.getCause()); }
 	}
 }
