@@ -1,10 +1,8 @@
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
 import java.nio.ByteBuffer;
-import java.nio.channels.ClosedChannelException;
-import java.nio.channels.SelectionKey;
-import java.nio.channels.Selector;
-import java.nio.channels.ServerSocketChannel;
+import java.nio.channels.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
@@ -17,6 +15,8 @@ public class Controller
 	
 	private static HashMap<String, MetaData> database = new HashMap<String, MetaData>();
 	
+	private static Selector selector = null;
+	
 	//java Controller cport R timeout
 	public static void main(String args[])
 	{
@@ -26,12 +26,13 @@ public class Controller
 		
 		try
 		{
-			Selector selector = Selector.open();
-			ServerSocketChannel serverSocket = ServerSocketChannel.open();
+			selector = Selector.open();
+			ServerSocketChannel socket = ServerSocketChannel.open();
+			ServerSocket serverSocket = socket.socket();
 			serverSocket.bind(new InetSocketAddress("localhost", cport));
-			serverSocket.configureBlocking(false);
-			serverSocket.register(selector, SelectionKey.OP_ACCEPT);
-			ByteBuffer buffer = ByteBuffer.allocate(256);
+			socket.configureBlocking(false);
+			int ops = socket.validOps();
+			socket.register(selector, ops, null);
 			
 			while (true)
 			{
@@ -46,17 +47,17 @@ public class Controller
 						
 						if (key.isAcceptable())
 						{
-					
+							handleAccept(socket, key);
 						}
 						
 						if (key.isReadable())
 						{
-				
+							handleRead(key);
 						}
 						
 						if (key.isWritable())
 						{
-						
+							handleWrite(key);
 						}
 						
 						iter.remove();
@@ -72,6 +73,78 @@ public class Controller
 		{
 			e.printStackTrace();
 		}
+	}
+	
+	/*private static void parseCommand(String command)
+	{
+		String[] components = command.split("\\s+");
+		
+		switch (components[0])
+		{
+			case "STORE":
+				store(components[1]);
+				break;
+			case "LOAD":
+				load(components[1]);
+				break;
+			case "REMOVE":
+				remove(components[1]);
+				break;
+			case "--help":
+				System.out.println("Usage: STORE filename");
+				System.out.println("       LOAD filename");
+				System.out.println("       REMOVE filename");
+				break;
+			case "EXIT":
+				System.exit(0);
+			default:
+				System.out.println("Error: Parsing the command. Try --help for usage.");
+		}
+	}*/
+	
+	private static void handleAccept(ServerSocketChannel mySocket, SelectionKey key) throws IOException
+	{
+		System.out.println("Connection Accepted...");
+		
+		// Accept the connection and set non-blocking mode
+		SocketChannel client = mySocket.accept();
+		client.configureBlocking(false);
+		
+		// Register that client is reading this channel
+		client.register(selector, SelectionKey.OP_READ);
+	}
+	
+	private static void handleRead(SelectionKey key) throws IOException
+	{
+		System.out.println("Reading...");
+		// create a ServerSocketChannel to read the request
+		SocketChannel client = (SocketChannel) key.channel();
+		
+		// Create buffer to read data
+		ByteBuffer buffer = ByteBuffer.allocate(1024);
+		client.read(buffer);
+		//Parse data from buffer to String
+		String data = new String(buffer.array()).trim();
+		
+		System.out.println("Read msg: " + data);
+		
+		client.register(selector, SelectionKey.OP_WRITE);
+	}
+	
+	private static void handleWrite(SelectionKey key) throws IOException
+	{
+		String msg = "Hi!";
+		
+		SocketChannel socket = (SocketChannel) key.channel();
+		ByteBuffer buffer = ByteBuffer.allocate(1024);
+		
+		buffer.put(msg.getBytes());
+		buffer.flip();
+		int bytesWritten = socket.write(buffer);
+		
+		System.out.println("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
+		
+		socket.register(selector, SelectionKey.OP_READ);
 	}
 	
 	public static void saveDatabase()

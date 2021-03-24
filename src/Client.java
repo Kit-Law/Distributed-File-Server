@@ -1,47 +1,52 @@
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 public class Client
 {
-	private static SocketChannel client;
-	private static ByteBuffer buffer;
-	private static EchoClient instance;
+	private SocketChannel controller;
 	
-	private static int cport = -1;
-	private static int timeout = -1;
+	private int cport = -1;
+	private int timeout = -1;
 	
 	//java Client cport timeout
 	public static void main(String args[])
 	{
-		cport = Integer.parseInt(args[0]);
-		timeout = Integer.parseInt(args[1]);
-		
-		new Client();
+		new Client(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
 	}
 	
-	private Client()
+	private Client(int cport, int timeout)
 	{
+		this.cport = cport;
+		this.timeout = timeout;
+		
+		try
+		{
+			connectToServer();
+		}
+		catch (IOException e) { System.err.println("Error: Failed to connect to server on port " + cport + ", with error, " + e.getMessage()); }
+		
 		while (true)
 		{
 			try
 			{
 				System.out.print("<Client> ");
 				BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-				String[] command = br.readLine().split("\\s+");
+				String command = br.readLine();
 				
-				switch (command[0])
+				switch (command.contains(" ") ? command.substring(0, command.indexOf(' ')) : command)
 				{
 					case "STORE":
-						store(command[1]);
+						store(command);
 						break;
 					case "LOAD":
-						load(command[1]);
+						load(command);
 						break;
 					case "REMOVE":
-						remove(command[1]);
+						remove(command);
 						break;
 					case "--help":
 						System.out.println("Usage: STORE filename");
@@ -60,7 +65,11 @@ public class Client
 	
 	private void store(String filename)
 	{
-	
+		try
+		{
+			sendMessage("Hello world", controller);
+		}
+		catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	private void load(String filename)
@@ -73,20 +82,29 @@ public class Client
 	
 	}
 	
-	public String sendMessage(String msg)
+	public void sendMessage(String msg, SocketChannel socket) throws IOException
 	{
-		buffer = ByteBuffer.wrap(msg.getBytes());
-		String response = null;
-		try {
-			client.write(buffer);
-			buffer.clear();
-			client.read(buffer);
-			response = new String(buffer.array()).trim();
-			System.out.println("response=" + response);
-			buffer.clear();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return response;
+		ByteBuffer buffer = ByteBuffer.allocate(1024);
+
+		buffer.put(msg.getBytes());
+		buffer.flip();
+		int bytesWritten = socket.write(buffer);
+		
+		System.out.println("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
+		
+		buffer.clear();
+		buffer.put(new byte[1024]);
+		buffer.clear();
+		
+		socket.read(buffer);
+		String response = new String(buffer.array()).trim();
+		System.out.println("response=" + response);
+		buffer.clear();
+	}
+	
+	private void connectToServer() throws IOException
+	{
+		System.out.println("Connecting to controller.");
+		controller = SocketChannel.open(new InetSocketAddress("localhost", cport));
 	}
 }
