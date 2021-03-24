@@ -1,3 +1,6 @@
+import logger.Loggable;
+import logger.Logger;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -5,7 +8,7 @@ import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public class Client
+public class Client implements Loggable
 {
 	private SocketChannel controller;
 	
@@ -22,12 +25,17 @@ public class Client
 	{
 		this.cport = cport;
 		this.timeout = timeout;
+		Logger.setLogFile(this);
 		
 		try
 		{
 			connectToServer();
 		}
-		catch (IOException e) { System.err.println("Error: Failed to connect to server on port " + cport + ", with error, " + e.getMessage()); }
+		catch (IOException e)
+		{
+			Logger.err.log("Failed to connect to server on port " + cport + ", with error, " + e.getMessage());
+			System.exit(1);
+		}
 		
 		while (true)
 		{
@@ -49,17 +57,17 @@ public class Client
 						remove(command);
 						break;
 					case "--help":
-						System.out.println("Usage: STORE filename");
-						System.out.println("       LOAD filename");
-						System.out.println("       REMOVE filename");
+						Logger.info.log("Usage: STORE filename");
+						Logger.info.log("       LOAD filename");
+						Logger.info.log("       REMOVE filename");
 						break;
 					case "EXIT":
 						System.exit(0);
 					default:
-						System.out.println("Error: Parsing the command. Try --help for usage.");
+						Logger.err.log("Parsing the command. Try --help for usage.");
 				}
 			}
-			catch (IOException e) { System.err.println(e.getMessage()); }
+			catch (IOException e) { Logger.err.log(e.getMessage()); }
 		}
 	}
 	
@@ -90,7 +98,7 @@ public class Client
 		buffer.flip();
 		int bytesWritten = socket.write(buffer);
 		
-		System.out.println("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
+		Logger.info.log("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
 		
 		buffer.clear();
 		buffer.put(new byte[1024]);
@@ -98,13 +106,20 @@ public class Client
 		
 		socket.read(buffer);
 		String response = new String(buffer.array()).trim();
-		System.out.println("response=" + response);
+		Logger.info.log("response=" + response);
 		buffer.clear();
 	}
 	
 	private void connectToServer() throws IOException
 	{
-		System.out.println("Connecting to controller.");
+		Logger.info.log("Connecting to controller...");
 		controller = SocketChannel.open(new InetSocketAddress("localhost", cport));
+		Logger.info.log("Connected to controller: " + controller);
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "Client-" + cport + "-" + System.currentTimeMillis();
 	}
 }

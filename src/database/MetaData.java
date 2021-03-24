@@ -1,3 +1,5 @@
+package database;
+
 import java.io.Serializable;
 
 public class MetaData implements Serializable
@@ -13,7 +15,10 @@ public class MetaData implements Serializable
 		this.dstorePorts = dstorePorts;
 	}
 	
-	public String parseState() { return state.name().replace('_', ' ').toLowerCase(); }
+	public String parseState()
+	{
+		return state.name().replace('_', ' ').toLowerCase();
+	}
 	
 	public State getState() { return state; }
 	public int getSize() { return size; }

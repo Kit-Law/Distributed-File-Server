@@ -1,3 +1,6 @@
+import database.MetaData;
+import logger.Logger;
+
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -23,6 +26,7 @@ public class Controller
 		cport = Integer.parseInt(args[0]);
 		R = Integer.parseInt(args[1]);
 		timeout = Integer.parseInt(args[2]);
+		//logger.Logger.setLogFile(this);
 		
 		try
 		{
@@ -91,20 +95,20 @@ public class Controller
 				remove(components[1]);
 				break;
 			case "--help":
-				System.out.println("Usage: STORE filename");
-				System.out.println("       LOAD filename");
-				System.out.println("       REMOVE filename");
+				logger.Logger.info.log("Usage: STORE filename");
+				logger.Logger.info.log("       LOAD filename");
+				logger.Logger.info.log("       REMOVE filename");
 				break;
 			case "EXIT":
 				System.exit(0);
 			default:
-				System.out.println("Error: Parsing the command. Try --help for usage.");
+				logger.Logger.err.log("Error: Parsing the command. Try --help for usage.");
 		}
 	}*/
 	
 	private static void handleAccept(ServerSocketChannel mySocket, SelectionKey key) throws IOException
 	{
-		System.out.println("Connection Accepted...");
+		Logger.info.log("Connection Accepted...");
 		
 		// Accept the connection and set non-blocking mode
 		SocketChannel client = mySocket.accept();
@@ -116,7 +120,7 @@ public class Controller
 	
 	private static void handleRead(SelectionKey key) throws IOException
 	{
-		System.out.println("Reading...");
+		Logger.info.log("Reading...");
 		// create a ServerSocketChannel to read the request
 		SocketChannel client = (SocketChannel) key.channel();
 		
@@ -126,7 +130,7 @@ public class Controller
 		//Parse data from buffer to String
 		String data = new String(buffer.array()).trim();
 		
-		System.out.println("Read msg: " + data);
+		Logger.info.log("Read msg: " + data);
 		
 		client.register(selector, SelectionKey.OP_WRITE);
 	}
@@ -142,7 +146,7 @@ public class Controller
 		buffer.flip();
 		int bytesWritten = socket.write(buffer);
 		
-		System.out.println("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
+		Logger.info.log("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
 		
 		socket.register(selector, SelectionKey.OP_READ);
 	}
@@ -156,7 +160,7 @@ public class Controller
 			out.writeObject(database);
 			out.close();
 			fileOut.close();
-			System.out.println("<Server> Database saved.");
+			Logger.info.log("Database saved.");
 		}
 		catch (IOException i) { i.printStackTrace(); }
 	}
@@ -170,7 +174,7 @@ public class Controller
 			database = (HashMap<String, MetaData>) in.readObject();
 			in.close();
 			fileIn.close();
-			System.out.println("<Server> Database loaded.");
+			Logger.info.log("Database loaded.");
 		}
 		catch (Exception e) { System.err.println(e.getMessage() + e.getCause()); }
 	}
