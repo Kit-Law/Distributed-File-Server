@@ -1,141 +1,67 @@
+import Constants.OpCodes;
+import Sockets.Server;
 import database.MetaData;
+import database.State;
+import logger.Loggable;
 import logger.Logger;
 
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.net.ServerSocket;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.List;
 
-public class Controller
+public class Controller extends Server implements Loggable
 {
-	private static int cport = -1;
-	private static int R = -1;
-	private static int timeout = -1;
-	
+	private int R = -1;
+	private int cport = -1;
 	private static HashMap<String, MetaData> database = new HashMap<String, MetaData>();
-	
-	private static Selector selector = null;
 	
 	//java Controller cport R timeout
 	public static void main(String args[])
 	{
-		cport = Integer.parseInt(args[0]);
-		R = Integer.parseInt(args[1]);
-		timeout = Integer.parseInt(args[2]);
-		//logger.Logger.setLogFile(this);
-		
-		try
-		{
-			selector = Selector.open();
-			ServerSocketChannel socket = ServerSocketChannel.open();
-			ServerSocket serverSocket = socket.socket();
-			serverSocket.bind(new InetSocketAddress("localhost", cport));
-			socket.configureBlocking(false);
-			int ops = socket.validOps();
-			socket.register(selector, ops, null);
-			
-			while (true)
-			{
-				try
-				{
-					selector.select();
-					Set<SelectionKey> selectedKeys = selector.selectedKeys();
-					Iterator<SelectionKey> iter = selectedKeys.iterator();
-					while (iter.hasNext())
-					{
-						SelectionKey key = iter.next();
-						
-						if (key.isAcceptable())
-						{
-							handleAccept(socket, key);
-						}
-						
-						if (key.isReadable())
-						{
-							handleRead(key);
-						}
-						
-						if (key.isWritable())
-						{
-							handleWrite(key);
-						}
-						
-						iter.remove();
-					}
-				}
-				catch (ClosedChannelException e)
-				{
-					e.printStackTrace();
-				}
-			}
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		new Controller(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]));
 	}
 	
-	/*private static void parseCommand(String command)
+	private Controller(int cport, int R, int timeout)
 	{
-		String[] components = command.split("\\s+");
+		super(cport, timeout);
+		this.R = R;
 		
-		switch (components[0])
-		{
-			case "STORE":
-				store(components[1]);
-				break;
-			case "LOAD":
-				load(components[1]);
-				break;
-			case "REMOVE":
-				remove(components[1]);
-				break;
-			case "--help":
-				logger.Logger.info.log("Usage: STORE filename");
-				logger.Logger.info.log("       LOAD filename");
-				logger.Logger.info.log("       REMOVE filename");
-				break;
-			case "EXIT":
-				System.exit(0);
-			default:
-				logger.Logger.err.log("Error: Parsing the command. Try --help for usage.");
-		}
-	}*/
-	
-	private static void handleAccept(ServerSocketChannel mySocket, SelectionKey key) throws IOException
-	{
-		Logger.info.log("Connection Accepted...");
+		logger.Logger.setLogFile(this);
 		
-		// Accept the connection and set non-blocking mode
-		SocketChannel client = mySocket.accept();
-		client.configureBlocking(false);
-		
-		// Register that client is reading this channel
-		client.register(selector, SelectionKey.OP_READ);
+		launchServer();
 	}
 	
-	private static void handleRead(SelectionKey key) throws IOException
+	@Override
+	protected void handleRead(SelectionKey key) throws IOException
 	{
 		Logger.info.log("Reading...");
 		// create a ServerSocketChannel to read the request
 		SocketChannel client = (SocketChannel) key.channel();
 		
-		// Create buffer to read data
-		ByteBuffer buffer = ByteBuffer.allocate(1024);
-		client.read(buffer);
-		//Parse data from buffer to String
-		String data = new String(buffer.array()).trim();
+		String msg = receiveMessage(client);
 		
-		Logger.info.log("Read msg: " + data);
-		
-		client.register(selector, SelectionKey.OP_WRITE);
+		switch (getOpcode(msg))
+		{
+			case OpCodes.CONTROLLER_STORE_REQUEST:
+				handleStoreRequest(getOperand(msg), client);
+				
+				break;
+			case OpCodes.CONTROLLER_LOAD_REQUEST:
+				handleLoadRequest(getOperand(msg), client);
+				break;
+			case OpCodes.CONTROLLER_REMOVE_REQUEST:
+				handleRemoveRequest(getOperand(msg), client);
+				break;
+		}
 	}
 	
-	private static void handleWrite(SelectionKey key) throws IOException
+	@Override
+	protected void handleWrite(SelectionKey key) throws IOException
 	{
 		String msg = "Hi!";
 		
@@ -177,5 +103,76 @@ public class Controller
 			Logger.info.log("Database loaded.");
 		}
 		catch (Exception e) { System.err.println(e.getMessage() + e.getCause()); }
+	}
+	
+	@Override
+	public String toString()
+	{
+		return "Controller-" + cport + "-" + System.currentTimeMillis();
+	}
+	
+	private void handleStoreRequest(String file, SocketChannel client) throws IOException
+	{
+		//Check that the file does not already exist.
+		if (database.containsKey(file))
+			//TODO: make an exception class
+			throw new IOException("File already existed lol");
+		
+		//Create a new database entry.
+		database.put(file, new MetaData(State.STORE_IN_PROGRESS));
+		
+		//Get R of the dstores.
+		List<SocketChannel> dstores = getRdstores();
+		int[] dstorePorts = getPorts(dstores);
+		
+		//Set the dsotres ready to read.
+		dstores.forEach(dstore -> {
+			try { dstore.register(selector, SelectionKey.OP_READ); }
+			catch (ClosedChannelException e) { e.printStackTrace(); }
+		});
+		
+		//Send the ports to the client.
+		sendMessage(OpCodes.STORE_TO, Arrays.toString(dstorePorts), client);
+	}
+	
+	private List<SocketChannel> getRdstores() { return new ArrayList<SocketChannel>(); }
+	private int[] getPorts(List<SocketChannel> dstores) { return new int[0]; }
+	
+	private void handleLoadRequest(String file, SocketChannel client)
+	{
+		try
+		{
+			int port = selectDstore(file);
+			sendMessage(OpCodes.LOAD_FROM, String.valueOf(port), client);
+		}
+		catch (IOException e) { e.printStackTrace(); }
+	}
+	
+	private int selectDstore(String file) { return database.get(file).getDstorePorts()[0]; }
+	
+	private void handleRemoveRequest(String file, SocketChannel client)
+	{
+		database.get(file).setState(State.REMOVE_IN_PROGRESS);
+		int[] dstorePorts = database.get(file).getDstorePorts();
+		
+		for (int port : dstorePorts)
+		{
+			try
+			{
+				SocketChannel dstore = SocketChannel.open(new InetSocketAddress(port));
+				
+				sendMessage(OpCodes.DSTORE_REMOVE_REQUEST, file, dstore);
+				
+				if (getOpcode(receiveMessage(dstore)) != OpCodes.REMOVE_ACK)
+					throw new IOException("Sadge");
+			}
+			catch (Exception e) { e.printStackTrace(); }
+		}
+		
+		//TODO: change the way that a file si tested to be there
+		database.get(file).setState(State.REMOVE_COMPLETE);
+		
+		try { sendMessage(OpCodes.REMOVE_COMPLETE, "", client); }
+		catch (IOException e) { e.printStackTrace(); }
 	}
 }

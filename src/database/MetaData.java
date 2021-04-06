@@ -8,6 +8,11 @@ public class MetaData implements Serializable
 	private int size;
 	private int[] dstorePorts;
 	
+	public MetaData(State state)
+	{
+		this.state = state;
+	}
+	
 	public MetaData(State state, int size, int[] dstorePorts)
 	{
 		this.state = state;
@@ -23,4 +28,6 @@ public class MetaData implements Serializable
 	public State getState() { return state; }
 	public int getSize() { return size; }
 	public int[] getDstorePorts() { return dstorePorts; }
+	
+	public void setState(State state) { this.state = state; }
 }

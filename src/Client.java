@@ -1,20 +1,22 @@
-import logger.Loggable;
+import Constants.OpCodes;
+import Sockets.messageClient;
+import fileTransfer.FileReciver;
 import logger.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Arrays;
 
-public class Client implements Loggable
+import fileTransfer.FileSender;
+
+public class Client extends messageClient
 {
-	private SocketChannel controller;
-	
-	private int cport = -1;
-	private int timeout = -1;
-	
 	//java Client cport timeout
 	public static void main(String args[])
 	{
@@ -23,38 +25,31 @@ public class Client implements Loggable
 	
 	private Client(int cport, int timeout)
 	{
-		this.cport = cport;
-		this.timeout = timeout;
-		Logger.setLogFile(this);
+		super(cport, timeout);
 		
-		try
-		{
-			connectToServer();
-		}
-		catch (IOException e)
-		{
-			Logger.err.log("Failed to connect to server on port " + cport + ", with error, " + e.getMessage());
-			System.exit(1);
-		}
-		
+		pollUser();
+	}
+	
+	private void pollUser()
+	{
 		while (true)
 		{
 			try
 			{
 				System.out.print("<Client> ");
 				BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
-				String command = br.readLine();
+				String[] command = br.readLine().split(" ");
 				
-				switch (command.contains(" ") ? command.substring(0, command.indexOf(' ')) : command)
+				switch (command[0])
 				{
 					case "STORE":
-						store(command);
+						store(command[1]);
 						break;
 					case "LOAD":
-						load(command);
+						load(command[1]);
 						break;
 					case "REMOVE":
-						remove(command);
+						remove(command[1]);
 						break;
 					case "--help":
 						Logger.info.log("Usage: STORE filename");
@@ -75,51 +70,70 @@ public class Client implements Loggable
 	{
 		try
 		{
-			sendMessage("Hello world", controller);
+			sendMessage(OpCodes.CONTROLLER_STORE_REQUEST, filename, controller);
+			
+			String response = receiveMessage(controller);
+			
+			if (getOpcode(response) != OpCodes.STORE_TO)
+				//TODO: make an exception class
+				throw new IOException("Wrong opcode received");
+			
+			Arrays.asList(getOperand(response).split(" ")).forEach(s -> {
+				try { storeToDstore(filename, Integer.parseInt(s)); }
+				catch (IOException e) { e.printStackTrace(); }
+			});
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
+	private void storeToDstore(String filename, int port) throws IOException
+	{
+		Path filePath = Paths.get(filename);
+		long fileSize = Files.size(filePath);
+		
+		SocketChannel dstore = SocketChannel.open(new InetSocketAddress(port));
+		
+		sendMessage(OpCodes.DSTORE_STORE_REQUEST, filename + " " + fileSize, dstore);
+		
+		if (Integer.parseInt(receiveMessage(dstore)) != OpCodes.ACK)
+			throw new IOException("??");
+		
+		FileSender.transfer(filePath, dstore);
+	}
+	
 	private void load(String filename)
 	{
-	
+		try
+		{
+			sendMessage(OpCodes.CONTROLLER_LOAD_REQUEST, filename, controller);
+			
+			String response = receiveMessage(controller);
+			
+			if (getOpcode(response) != OpCodes.LOAD_FROM)
+				//TODO: make an exception class
+				throw new IOException("Wrong opcode received");
+			
+			SocketChannel dstore = SocketChannel.open(new InetSocketAddress(Integer.parseInt(getOperand(response))));
+			
+			sendMessage(OpCodes.LOAD_DATA, filename, dstore);
+			
+			FileReciver.recive(Paths.get("./" + filename));
+		}
+		catch (IOException e) { e.printStackTrace(); }
 	}
 	
 	private void remove(String filename)
 	{
-	
-	}
-	
-	public void sendMessage(String msg, SocketChannel socket) throws IOException
-	{
-		ByteBuffer buffer = ByteBuffer.allocate(1024);
-
-		buffer.put(msg.getBytes());
-		buffer.flip();
-		int bytesWritten = socket.write(buffer);
-		
-		Logger.info.log("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
-		
-		buffer.clear();
-		buffer.put(new byte[1024]);
-		buffer.clear();
-		
-		socket.read(buffer);
-		String response = new String(buffer.array()).trim();
-		Logger.info.log("response=" + response);
-		buffer.clear();
-	}
-	
-	private void connectToServer() throws IOException
-	{
-		Logger.info.log("Connecting to controller...");
-		controller = SocketChannel.open(new InetSocketAddress("localhost", cport));
-		Logger.info.log("Connected to controller: " + controller);
-	}
-	
-	@Override
-	public String toString()
-	{
-		return "Client-" + cport + "-" + System.currentTimeMillis();
+		try
+		{
+			sendMessage(OpCodes.CONTROLLER_REMOVE_REQUEST, filename, controller);
+			
+			String response = receiveMessage(controller);
+			
+			if (getOpcode(response) != OpCodes.REMOVE_COMPLETE)
+				//TODO: make an exception class
+				throw new IOException("Wrong opcode received");
+		}
+		catch (IOException e) { e.printStackTrace(); }
 	}
 }
