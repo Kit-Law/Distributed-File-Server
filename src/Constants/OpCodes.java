@@ -1,5 +1,8 @@
 package Constants;
 
+/**
+ * A class to hold all of the codes that are sent between the sockets.
+ */
 public class OpCodes
 {
 	/** A general acknowledgement. */
