@@ -1,5 +1,9 @@
 package logger;
 
+/**
+ * An enum to hold the log levels, the log colours and be able to compare
+ * different LogLevels to see witch one has the higher precedence.
+ */
 public enum LogLevel
 {
 	INFO(0, "\u001B[32m"),

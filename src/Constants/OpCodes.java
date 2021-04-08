@@ -28,4 +28,6 @@ public class OpCodes
 	public static final int REMOVE_ACK = 10;
 	/** The Controller sends a complete ack to the Client when all of the files have been removed. */
 	public static final int REMOVE_COMPLETE = 11;
+	/** The DStore will send a request to connect to the controller. */
+	public static final int DSTORE_CONNECT = 13;
 }
