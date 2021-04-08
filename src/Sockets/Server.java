@@ -11,12 +11,12 @@ import java.util.Set;
 
 public abstract class Server
 {
-	protected int port = -1;
-	protected int timeout = -1;
+	protected final int port;
+	protected final int timeout;
 	
 	protected Selector selector = null;
 	
-	protected Server(int port, int timeout)
+	protected Server(final int port, final int timeout)
 	{
 		this.port = port;
 		this.timeout = timeout;
@@ -87,6 +87,6 @@ public abstract class Server
 		Logger.info.log("Connection Accepted from: " + client.toString() + ".");
 	}
 	
-	protected abstract void handleRead(SelectionKey key) throws IOException;
-	protected abstract void handleWrite(SelectionKey key) throws IOException;
+	protected abstract void handleRead(final SelectionKey key) throws IOException;
+	protected abstract void handleWrite(final SelectionKey key) throws IOException;
 }

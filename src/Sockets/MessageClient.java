@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 
 public class MessageClient extends MessageSocket
 {
-	SocketChannel socket;
+	private SocketChannel socket;
 	
 	public MessageClient(int port)
 	{
@@ -23,17 +23,17 @@ public class MessageClient extends MessageSocket
 		}
 	}
 	
-	public void sendMessage(int opcode, String msg) throws IOException
+	public void sendMessage(final int opcode, final String msg) throws IOException
 	{
 		sendMessage(opcode, msg, socket);
 	}
 	
-	public String receiveMessage() throws IOException
+	public final String receiveMessage() throws IOException
 	{
 		return receiveMessage(socket);
 	}
 	
-	private static SocketChannel connectToServer(int port) throws IOException
+	private static SocketChannel connectToServer(final int port) throws IOException
 	{
 		Logger.info.log("Connecting to socket...");
 		SocketChannel socket = SocketChannel.open(new InetSocketAddress(port));
@@ -42,5 +42,5 @@ public class MessageClient extends MessageSocket
 		return socket;
 	}
 	
-	public SocketChannel getSocket() { return socket; }
+	public final SocketChannel getSocket() { return socket; }
 }

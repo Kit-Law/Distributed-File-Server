@@ -8,7 +8,6 @@ import logger.Logger;
 
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -17,20 +16,21 @@ import java.util.List;
 
 public class Controller extends Server implements Loggable
 {
-	private int R = -1;
-	private int cport = -1;
-	private static HashMap<String, MetaData> database = new HashMap<String, MetaData>();
+	private final int R;
+	private final int rebalance_period;
+	private static HashMap<String, MetaData> database = new HashMap<>();
 	
 	//java Controller cport R timeout
-	public static void main(String args[])
+	public static void main(String[] args)
 	{
-		new Controller(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]));
+		new Controller(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]));
 	}
 	
-	private Controller(int cport, int R, int timeout)
+	private Controller(final int cport, final int R, final int timeout, final int rebalance_period)
 	{
 		super(cport, timeout);
 		this.R = R;
+		this.rebalance_period = rebalance_period;
 		
 		logger.Logger.setLogFile(this);
 		
@@ -38,7 +38,7 @@ public class Controller extends Server implements Loggable
 	}
 	
 	@Override
-	protected void handleRead(SelectionKey key) throws IOException
+	protected void handleRead(final SelectionKey key) throws IOException
 	{
 		Logger.info.log("Reading...");
 		// create a ServerSocketChannel to read the request
@@ -63,21 +63,8 @@ public class Controller extends Server implements Loggable
 	}
 	
 	@Override
-	protected void handleWrite(SelectionKey key) throws IOException
-	{
-		String msg = "Hi!";
-		
-		SocketChannel socket = (SocketChannel) key.channel();
-		ByteBuffer buffer = ByteBuffer.allocate(1024);
-		
-		buffer.put(msg.getBytes());
-		buffer.flip();
-		int bytesWritten = socket.write(buffer);
-		
-		Logger.info.log("Sent message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
-		
-		socket.register(selector, SelectionKey.OP_READ);
-	}
+	protected void handleWrite(final SelectionKey key) throws IOException
+	{ }
 	
 	public static void saveDatabase()
 	{
@@ -108,9 +95,9 @@ public class Controller extends Server implements Loggable
 	}
 	
 	@Override
-	public String toString()
+	public final String toString()
 	{
-		return "Controller-" + cport + "-" + System.currentTimeMillis();
+		return "Controller-" + port + "-" + System.currentTimeMillis();
 	}
 	
 	private void handleDstoreConnect(String port, SocketChannel dstore)
@@ -118,7 +105,7 @@ public class Controller extends Server implements Loggable
 	
 	}
 	
-	private void handleStoreRequest(String file, SocketChannel client) throws IOException
+	private void handleStoreRequest(final String file, final SocketChannel client) throws IOException
 	{
 		//Check that the file does not already exist.
 		if (database.containsKey(file))
@@ -142,10 +129,10 @@ public class Controller extends Server implements Loggable
 		MessageSocket.sendMessage(OpCodes.STORE_TO, Arrays.toString(dstorePorts), client);
 	}
 	
-	private List<SocketChannel> getRdstores() { return new ArrayList<SocketChannel>(); }
+	private List<SocketChannel> getRdstores() { return new ArrayList<>(); }
 	private int[] getPorts(List<SocketChannel> dstores) { return new int[0]; }
 	
-	private void handleLoadRequest(String file, SocketChannel client)
+	private void handleLoadRequest(final String file, final SocketChannel client)
 	{
 		try
 		{
@@ -157,7 +144,7 @@ public class Controller extends Server implements Loggable
 	
 	private int selectDstore(String file) { return database.get(file).getDstorePorts()[0]; }
 	
-	private void handleRemoveRequest(String file, SocketChannel client)
+	private void handleRemoveRequest(final String file, final SocketChannel client)
 	{
 		database.get(file).setState(State.REMOVE_IN_PROGRESS);
 		int[] dstorePorts = database.get(file).getDstorePorts();

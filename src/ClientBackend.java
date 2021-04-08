@@ -13,12 +13,12 @@ import java.util.Arrays;
 
 public class ClientBackend implements Loggable
 {
-	int cport;
-	int timeout;
+	private final int cport;
+	private final int timeout;
 	
-	MessageClient controller;
+	private MessageClient controller;
 	
-	ClientBackend(int cport, int timeout)
+	ClientBackend(final int cport, final int timeout)
 	{
 		this.cport = cport;
 		this.timeout = timeout;
@@ -48,7 +48,7 @@ public class ClientBackend implements Loggable
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	private void storeToDstore(String filename, int port) throws IOException
+	private void storeToDstore(final String filename, final int port) throws IOException
 	{
 		Path filePath = Paths.get(filename);
 		long fileSize = Files.size(filePath);
@@ -63,7 +63,7 @@ public class ClientBackend implements Loggable
 		FileSender.transfer(filePath, dstore.getSocket());
 	}
 	
-	protected void load(String filename)
+	protected void load(final String filename)
 	{
 		try
 		{
@@ -85,7 +85,7 @@ public class ClientBackend implements Loggable
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	protected void remove(String filename)
+	protected void remove(final String filename)
 	{
 		try
 		{
@@ -101,7 +101,7 @@ public class ClientBackend implements Loggable
 	}
 	
 	@Override
-	public String toString()
+	public final String toString()
 	{
 		return "Client-" + cport + "-" + System.currentTimeMillis();
 	}

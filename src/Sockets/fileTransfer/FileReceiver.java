@@ -13,7 +13,7 @@ import java.util.Objects;
 //TODO: This is stupid...
 public class FileReceiver
 {
-	public static void receive(SocketChannel client, Path filePath, long size)
+	public static void receive(final SocketChannel client, final Path filePath, final long size)
 	{
 		try
 		{
@@ -28,9 +28,9 @@ public class FileReceiver
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	private static long transfer(final SocketChannel client, FileChannel channel, final long bytes) throws IOException
+	private static long transfer(final SocketChannel client, final FileChannel channel, final long bytes) throws IOException
 	{
-		long position = 0l;
+		long position = 0L;
 		while (position < bytes)
 		{
 			position += channel.transferFrom(client, position, Values.TRANSFER_MAX_SIZE);
@@ -39,7 +39,7 @@ public class FileReceiver
 		return position;
 	}
 	
-	private static int write(FileChannel channel, final ByteBuffer buffer, long position) throws IOException
+	private static int write(final FileChannel channel, final ByteBuffer buffer, final long position) throws IOException
 	{
 		assert !Objects.isNull(buffer);
 		

@@ -7,12 +7,12 @@ import java.io.InputStreamReader;
 public class Client extends ClientBackend
 {
 	//java Client cport timeout
-	public static void main(String args[])
+	public static void main(String[] args)
 	{
 		new Client(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
 	}
 	
-	private Client(int cport, int timeout)
+	private Client(final int cport, final int timeout)
 	{
 		super(cport, timeout);
 		

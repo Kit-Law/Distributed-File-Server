@@ -12,13 +12,13 @@ public final class FileSender
 {
 	private SocketChannel client;
 	
-	public static void transfer(Path filePath, int port)
+	public static void transfer(final Path filePath, final int port)
 	{
 		try { transfer(filePath, SocketChannel.open(new InetSocketAddress(port))); }
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
-	public static void transfer(Path filePath, SocketChannel client)
+	public static void transfer(final Path filePath, final SocketChannel client)
 	{
 		try
 		{

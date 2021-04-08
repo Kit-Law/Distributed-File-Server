@@ -23,12 +23,12 @@ public class Dstore extends Server implements Loggable
 	private MessageClient controller;
 	
 	//Dstore port cport timeout file_folder
-	public static void main(String args[])
+	public static void main(String[] args)
 	{
 		new Dstore(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]), args[3]);
 	}
 	
-	protected Dstore(int port, int cport, int timeout, String file_folder)
+	protected Dstore(final int port, final int cport, final int timeout, final String file_folder)
 	{
 		super(port, timeout);
 		
@@ -53,7 +53,7 @@ public class Dstore extends Server implements Loggable
 	}
 	
 	@Override
-	protected void handleRead(SelectionKey key) throws IOException
+	protected void handleRead(final SelectionKey key) throws IOException
 	{
 		Logger.info.log("Reading...");
 		// create a ServerSocketChannel to read the request
@@ -75,10 +75,10 @@ public class Dstore extends Server implements Loggable
 	}
 	
 	@Override
-	protected void handleWrite(SelectionKey key) throws IOException
+	protected void handleWrite(final SelectionKey key) throws IOException
 	{ }
 	
-	private void handleStoreRequest(String operand, SocketChannel client) throws IOException
+	private void handleStoreRequest(final String operand, final SocketChannel client) throws IOException
 	{
 		String filename = operand.substring(0, operand.indexOf(' '));
 		long filesize = Long.parseLong(operand.substring(operand.indexOf(' ')));
@@ -90,12 +90,12 @@ public class Dstore extends Server implements Loggable
 		controller.sendMessage(OpCodes.STORE_ACK, filename);
 	}
 	
-	private void handleLoadRequest(String filename, SocketChannel client) throws IOException
+	private void handleLoadRequest(final String filename, final SocketChannel client)
 	{
 		FileSender.transfer(Paths.get("./" + file_folder + "/" + filename), client);
 	}
 	
-	private void handleRemoveRequest(String filename) throws IOException
+	private void handleRemoveRequest(final String filename) throws IOException
 	{
 		Files.delete(Paths.get("./" + file_folder + "/" + filename));
 		
