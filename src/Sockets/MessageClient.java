@@ -1,46 +1,46 @@
 package Sockets;
 
-import logger.Loggable;
 import logger.Logger;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
-public class MessageClient extends MessageSocket implements Loggable
+public class MessageClient extends MessageSocket
 {
-	public SocketChannel controller;
+	SocketChannel socket;
 	
-	protected int cport = -1;
-	protected int timeout = -1;
-	
-	public MessageClient(int cport, int timeout)
+	public MessageClient(int port)
 	{
-		this.cport = cport;
-		this.timeout = timeout;
-		Logger.setLogFile(this);
-		
 		try
 		{
-			connectToServer();
+			socket = connectToServer(port);
 		}
 		catch (IOException e)
 		{
-			Logger.err.log("Failed to connect to server on port " + cport + ", with error, " + e.getMessage());
+			Logger.err.log("Failed to connect to server on port " + port + ", with error, " + e.getMessage());
 			System.exit(1);
 		}
 	}
 	
-	private void connectToServer() throws IOException
+	public void sendMessage(int opcode, String msg) throws IOException
 	{
-		Logger.info.log("Connecting to controller...");
-		controller = SocketChannel.open(new InetSocketAddress(cport));
-		Logger.info.log("Connected to controller: " + controller);
+		sendMessage(opcode, msg, socket);
 	}
 	
-	@Override
-	public String toString()
+	public String receiveMessage() throws IOException
 	{
-		return "Client-" + cport + "-" + System.currentTimeMillis();
+		return receiveMessage(socket);
 	}
+	
+	private static SocketChannel connectToServer(int port) throws IOException
+	{
+		Logger.info.log("Connecting to socket...");
+		SocketChannel socket = SocketChannel.open(new InetSocketAddress(port));
+		Logger.info.log("Connected to socket: " + socket);
+		
+		return socket;
+	}
+	
+	public SocketChannel getSocket() { return socket; }
 }

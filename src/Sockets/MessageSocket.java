@@ -6,9 +6,9 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-public abstract class MessageSocket
+public class MessageSocket
 {
-	public void sendMessage(int opcode, String msg, SocketChannel socket) throws IOException
+	public static void sendMessage(int opcode, String msg, SocketChannel socket) throws IOException
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(64);
 		
@@ -19,7 +19,7 @@ public abstract class MessageSocket
 		Logger.info.log("Sent opcode: " + opcode + ", With message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
 	}
 	
-	public String receiveMessage(SocketChannel socket) throws IOException
+	public static String receiveMessage(SocketChannel socket) throws IOException
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(64);
 		
@@ -30,12 +30,12 @@ public abstract class MessageSocket
 		return response;
 	}
 	
-	public int getOpcode(String msg)
+	public static int getOpcode(String msg)
 	{
 		return Integer.parseInt(msg.substring(0, msg.indexOf(' ')));
 	}
 	
-	public String getOperand(String msg)
+	public static String getOperand(String msg)
 	{
 		return msg.substring(msg.indexOf(' ') + 1);
 	}

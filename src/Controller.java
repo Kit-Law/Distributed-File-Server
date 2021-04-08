@@ -1,4 +1,5 @@
 import Constants.OpCodes;
+import Sockets.MessageSocket;
 import Sockets.Server;
 import database.MetaData;
 import database.State;
@@ -43,20 +44,20 @@ public class Controller extends Server implements Loggable
 		// create a ServerSocketChannel to read the request
 		SocketChannel client = (SocketChannel) key.channel();
 		
-		String msg = receiveMessage(client);
+		String msg = MessageSocket.receiveMessage(client);
 		
-		switch (getOpcode(msg))
+		switch (MessageSocket.getOpcode(msg))
 		{
 			case OpCodes.DSTORE_CONNECT:
-				handleDstoreConnect(getOperand(msg), client);
+				handleDstoreConnect(MessageSocket.getOperand(msg), client);
 			case OpCodes.CONTROLLER_STORE_REQUEST:
-				handleStoreRequest(getOperand(msg), client);
+				handleStoreRequest(MessageSocket.getOperand(msg), client);
 				break;
 			case OpCodes.CONTROLLER_LOAD_REQUEST:
-				handleLoadRequest(getOperand(msg), client);
+				handleLoadRequest(MessageSocket.getOperand(msg), client);
 				break;
 			case OpCodes.CONTROLLER_REMOVE_REQUEST:
-				handleRemoveRequest(getOperand(msg), client);
+				handleRemoveRequest(MessageSocket.getOperand(msg), client);
 				break;
 		}
 	}
@@ -138,7 +139,7 @@ public class Controller extends Server implements Loggable
 		});
 		
 		//Send the ports to the client.
-		sendMessage(OpCodes.STORE_TO, Arrays.toString(dstorePorts), client);
+		MessageSocket.sendMessage(OpCodes.STORE_TO, Arrays.toString(dstorePorts), client);
 	}
 	
 	private List<SocketChannel> getRdstores() { return new ArrayList<SocketChannel>(); }
@@ -149,7 +150,7 @@ public class Controller extends Server implements Loggable
 		try
 		{
 			int port = selectDstore(file);
-			sendMessage(OpCodes.LOAD_FROM, String.valueOf(port), client);
+			MessageSocket.sendMessage(OpCodes.LOAD_FROM, String.valueOf(port), client);
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}
@@ -167,9 +168,9 @@ public class Controller extends Server implements Loggable
 			{
 				SocketChannel dstore = SocketChannel.open(new InetSocketAddress(port));
 				
-				sendMessage(OpCodes.DSTORE_REMOVE_REQUEST, file, dstore);
+				MessageSocket.sendMessage(OpCodes.DSTORE_REMOVE_REQUEST, file, dstore);
 				
-				if (getOpcode(receiveMessage(dstore)) != OpCodes.REMOVE_ACK)
+				if (MessageSocket.getOpcode(MessageSocket.receiveMessage(dstore)) != OpCodes.REMOVE_ACK)
 					throw new IOException("Sadge");
 			}
 			catch (Exception e) { e.printStackTrace(); }
@@ -178,7 +179,7 @@ public class Controller extends Server implements Loggable
 		//TODO: change the way that a file si tested to be there
 		database.get(file).setState(State.REMOVE_COMPLETE);
 		
-		try { sendMessage(OpCodes.REMOVE_COMPLETE, "", client); }
+		try { MessageSocket.sendMessage(OpCodes.REMOVE_COMPLETE, "", client); }
 		catch (IOException e) { e.printStackTrace(); }
 	}
 }

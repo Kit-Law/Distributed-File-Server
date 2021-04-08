@@ -9,7 +9,7 @@ import java.nio.channels.*;
 import java.util.Iterator;
 import java.util.Set;
 
-public abstract class Server extends MessageSocket
+public abstract class Server
 {
 	protected int port = -1;
 	protected int timeout = -1;

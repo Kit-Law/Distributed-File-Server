@@ -1,4 +1,5 @@
 import Constants.OpCodes;
+import Sockets.MessageSocket;
 import Sockets.Server;
 import Sockets.MessageClient;
 import Sockets.fileTransfer.FileReceiver;
@@ -18,7 +19,8 @@ public class Dstore extends Server implements Loggable
 	private int port;
 	private int timeout;
 	private String file_folder;
-	private MessageClient communicator;
+	
+	private MessageClient controller;
 	
 	//Dstore port cport timeout file_folder
 	public static void main(String args[])
@@ -39,8 +41,8 @@ public class Dstore extends Server implements Loggable
 		
 		try
 		{
-			this.communicator = new MessageClient(cport, timeout);
-			communicator.sendMessage(OpCodes.DSTORE_CONNECT, String.valueOf(port), communicator.controller);
+			controller = new MessageClient(cport);
+			controller.sendMessage(OpCodes.DSTORE_CONNECT, String.valueOf(port));
 		}
 		catch (IOException e)
 		{
@@ -57,18 +59,18 @@ public class Dstore extends Server implements Loggable
 		// create a ServerSocketChannel to read the request
 		SocketChannel client = (SocketChannel) key.channel();
 		
-		String msg = receiveMessage(client);
+		String msg = MessageSocket.receiveMessage(client);
 		
-		switch (getOpcode(msg))
+		switch (MessageSocket.getOpcode(msg))
 		{
 			case OpCodes.DSTORE_STORE_REQUEST:
-				handleStoreRequest(getOperand(msg), client);
+				handleStoreRequest(MessageSocket.getOperand(msg), client);
 				break;
 			case OpCodes.LOAD_DATA:
-				handleLoadRequest(getOperand(msg), client);
+				handleLoadRequest(MessageSocket.getOperand(msg), client);
 				break;
 			case OpCodes.DSTORE_REMOVE_REQUEST:
-				handleRemoveRequest(getOperand(msg));
+				handleRemoveRequest(MessageSocket.getOperand(msg));
 		}
 	}
 	
@@ -80,12 +82,12 @@ public class Dstore extends Server implements Loggable
 	{
 		String filename = operand.substring(0, operand.indexOf(' '));
 		long filesize = Long.parseLong(operand.substring(operand.indexOf(' ')));
-
-		sendMessage(OpCodes.ACK, "", client);
+		
+		MessageSocket.sendMessage(OpCodes.ACK, "", client);
 		
 		FileReceiver.receive(client, Paths.get("./" + file_folder + "/" + filename), filesize);
 		
-		communicator.sendMessage(OpCodes.STORE_ACK, filename, communicator.controller);
+		controller.sendMessage(OpCodes.STORE_ACK, filename);
 	}
 	
 	private void handleLoadRequest(String filename, SocketChannel client) throws IOException
@@ -97,6 +99,6 @@ public class Dstore extends Server implements Loggable
 	{
 		Files.delete(Paths.get("./" + file_folder + "/" + filename));
 		
-		communicator.sendMessage(OpCodes.REMOVE_ACK, filename, communicator.controller);
+		controller.sendMessage(OpCodes.REMOVE_ACK, filename);
 	}
 }

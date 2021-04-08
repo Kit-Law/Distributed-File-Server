@@ -1,21 +1,10 @@
-import Constants.OpCodes;
-import Sockets.MessageClient;
-import Sockets.fileTransfer.FileReceiver;
 import logger.Logger;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.InetSocketAddress;
-import java.nio.channels.SocketChannel;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Arrays;
 
-import Sockets.fileTransfer.FileSender;
-
-public class Client extends MessageClient
+public class Client extends ClientBackend
 {
 	//java Client cport timeout
 	public static void main(String args[])
@@ -64,77 +53,5 @@ public class Client extends MessageClient
 			}
 			catch (IOException e) { Logger.err.log(e.getMessage()); }
 		}
-	}
-	
-	private void store(String filename)
-	{
-		try
-		{
-			sendMessage(OpCodes.CONTROLLER_STORE_REQUEST, filename, controller);
-			
-			String response = receiveMessage(controller);
-			
-			if (getOpcode(response) != OpCodes.STORE_TO)
-				//TODO: make an exception class
-				throw new IOException("Wrong opcode received");
-			
-			Arrays.asList(getOperand(response).split(" ")).forEach(s -> {
-				try { storeToDstore(filename, Integer.parseInt(s)); }
-				catch (IOException e) { e.printStackTrace(); }
-			});
-		}
-		catch (IOException e) { e.printStackTrace(); }
-	}
-	
-	private void storeToDstore(String filename, int port) throws IOException
-	{
-		Path filePath = Paths.get(filename);
-		long fileSize = Files.size(filePath);
-		
-		SocketChannel dstore = SocketChannel.open(new InetSocketAddress(port));
-		
-		sendMessage(OpCodes.DSTORE_STORE_REQUEST, filename + " " + fileSize, dstore);
-		
-		if (Integer.parseInt(receiveMessage(dstore)) != OpCodes.ACK)
-			throw new IOException("??");
-		
-		FileSender.transfer(filePath, dstore);
-	}
-	
-	private void load(String filename)
-	{
-		try
-		{
-			sendMessage(OpCodes.CONTROLLER_LOAD_REQUEST, filename, controller);
-			
-			String response = receiveMessage(controller);
-			
-			if (getOpcode(response) != OpCodes.LOAD_FROM)
-				//TODO: make an exception class
-				throw new IOException("Wrong opcode received");
-			
-			SocketChannel dstore = SocketChannel.open(new InetSocketAddress(Integer.parseInt(getOperand(response))));
-			
-			sendMessage(OpCodes.LOAD_DATA, filename, dstore);
-			
-			int size = 0; //TODO: wtf kirk
-			FileReceiver.receive(dstore, Paths.get("./" + filename), size);
-		}
-		catch (IOException e) { e.printStackTrace(); }
-	}
-	
-	private void remove(String filename)
-	{
-		try
-		{
-			sendMessage(OpCodes.CONTROLLER_REMOVE_REQUEST, filename, controller);
-			
-			String response = receiveMessage(controller);
-			
-			if (getOpcode(response) != OpCodes.REMOVE_COMPLETE)
-				//TODO: make an exception class
-				throw new IOException("Wrong opcode received");
-		}
-		catch (IOException e) { e.printStackTrace(); }
 	}
 }
