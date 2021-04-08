@@ -47,9 +47,10 @@ public class Controller extends Server implements Loggable
 		
 		switch (getOpcode(msg))
 		{
+			case OpCodes.DSTORE_CONNECT:
+				handleDstoreConnect(getOperand(msg), client);
 			case OpCodes.CONTROLLER_STORE_REQUEST:
 				handleStoreRequest(getOperand(msg), client);
-				
 				break;
 			case OpCodes.CONTROLLER_LOAD_REQUEST:
 				handleLoadRequest(getOperand(msg), client);
@@ -109,6 +110,11 @@ public class Controller extends Server implements Loggable
 	public String toString()
 	{
 		return "Controller-" + cport + "-" + System.currentTimeMillis();
+	}
+	
+	private void handleDstoreConnect(String port, SocketChannel dstore)
+	{
+	
 	}
 	
 	private void handleStoreRequest(String file, SocketChannel client) throws IOException

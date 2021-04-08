@@ -1,6 +1,7 @@
-package fileTransfer;
+package Sockets.fileTransfer;
 
-import java.io.IOException;
+import Constants.Values;
+
 import java.net.InetSocketAddress;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
@@ -10,7 +11,6 @@ import java.nio.file.StandardOpenOption;
 public final class FileSender
 {
 	private SocketChannel client;
-	private static final long TRANSFER_MAX_SIZE = 1000;
 	
 	public static void transfer(Path filePath, int port)
 	{
@@ -24,12 +24,12 @@ public final class FileSender
 		{
 			FileChannel channel = FileChannel.open(filePath, StandardOpenOption.READ);
 			
-			long position = 0l;
+			long position = 0L;
 			long size = channel.size();
 			
 			while (position < size)
 			{
-				position += channel.transferTo(position, TRANSFER_MAX_SIZE, client);
+				position += channel.transferTo(position, Values.TRANSFER_MAX_SIZE, client);
 			}
 			
 			channel.close();

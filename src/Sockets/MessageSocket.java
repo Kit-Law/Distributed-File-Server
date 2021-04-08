@@ -8,7 +8,7 @@ import java.nio.channels.SocketChannel;
 
 public abstract class MessageSocket
 {
-	protected void sendMessage(int opcode, String msg, SocketChannel socket) throws IOException
+	public void sendMessage(int opcode, String msg, SocketChannel socket) throws IOException
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(64);
 		
@@ -19,7 +19,7 @@ public abstract class MessageSocket
 		Logger.info.log("Sent opcode: " + opcode + ", With message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
 	}
 	
-	protected String receiveMessage(SocketChannel socket) throws IOException
+	public String receiveMessage(SocketChannel socket) throws IOException
 	{
 		ByteBuffer buffer = ByteBuffer.allocate(64);
 		
@@ -30,12 +30,12 @@ public abstract class MessageSocket
 		return response;
 	}
 	
-	protected int getOpcode(String msg)
+	public int getOpcode(String msg)
 	{
 		return Integer.parseInt(msg.substring(0, msg.indexOf(' ')));
 	}
 	
-	protected String getOperand(String msg)
+	public String getOperand(String msg)
 	{
 		return msg.substring(msg.indexOf(' ') + 1);
 	}

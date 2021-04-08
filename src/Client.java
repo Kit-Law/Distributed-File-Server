@@ -1,6 +1,6 @@
 import Constants.OpCodes;
-import Sockets.messageClient;
-import fileTransfer.FileReciver;
+import Sockets.MessageClient;
+import Sockets.fileTransfer.FileReceiver;
 import logger.Logger;
 
 import java.io.BufferedReader;
@@ -13,9 +13,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 
-import fileTransfer.FileSender;
+import Sockets.fileTransfer.FileSender;
 
-public class Client extends messageClient
+public class Client extends MessageClient
 {
 	//java Client cport timeout
 	public static void main(String args[])
@@ -117,7 +117,8 @@ public class Client extends messageClient
 			
 			sendMessage(OpCodes.LOAD_DATA, filename, dstore);
 			
-			FileReciver.recive(Paths.get("./" + filename));
+			int size = 0; //TODO: wtf kirk
+			FileReceiver.receive(dstore, Paths.get("./" + filename), size);
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}

@@ -7,14 +7,14 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.channels.SocketChannel;
 
-public class messageClient extends MessageSocket implements Loggable
+public class MessageClient extends MessageSocket implements Loggable
 {
-	protected SocketChannel controller;
+	public SocketChannel controller;
 	
 	protected int cport = -1;
 	protected int timeout = -1;
 	
-	protected messageClient(int cport, int timeout)
+	public MessageClient(int cport, int timeout)
 	{
 		this.cport = cport;
 		this.timeout = timeout;
