@@ -9,16 +9,14 @@ import logger.Logger;
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.channels.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class Controller extends Server implements Loggable
 {
 	private final int R;
 	private final int rebalance_period;
 	private static HashMap<String, MetaData> database = new HashMap<>();
+	private static ArrayList<Map.Entry<SocketChannel, Integer>> dstores = new ArrayList<>();
 	
 	//java Controller cport R timeout
 	public static void main(String[] args)
@@ -38,7 +36,7 @@ public class Controller extends Server implements Loggable
 	}
 	
 	@Override
-	protected void handleRead(final SelectionKey key) throws IOException
+	protected void handleRead(SelectionKey key) throws IOException
 	{
 		Logger.info.log("Reading...");
 		// create a ServerSocketChannel to read the request
@@ -50,8 +48,12 @@ public class Controller extends Server implements Loggable
 		{
 			case OpCodes.DSTORE_CONNECT:
 				handleDstoreConnect(MessageSocket.getOperand(msg), client);
+				break;
 			case OpCodes.CONTROLLER_STORE_REQUEST:
 				handleStoreRequest(MessageSocket.getOperand(msg), client);
+				break;
+			case OpCodes.STORE_ACK:
+				handleStoreAck(MessageSocket.getOperand(msg), client);
 				break;
 			case OpCodes.CONTROLLER_LOAD_REQUEST:
 				handleLoadRequest(MessageSocket.getOperand(msg), client);
@@ -63,7 +65,7 @@ public class Controller extends Server implements Loggable
 	}
 	
 	@Override
-	protected void handleWrite(final SelectionKey key) throws IOException
+	protected void handleWrite(SelectionKey key) throws IOException
 	{ }
 	
 	public static void saveDatabase()
@@ -102,10 +104,12 @@ public class Controller extends Server implements Loggable
 	
 	private void handleDstoreConnect(String port, SocketChannel dstore)
 	{
-	
+		dstores.add(new AbstractMap.SimpleEntry<SocketChannel, Integer>(dstore, Integer.parseInt(port)));
+		
+		Logger.info.log("DStore: " + dstore + ", has been added.");
 	}
 	
-	private void handleStoreRequest(final String file, final SocketChannel client) throws IOException
+	private void handleStoreRequest(final String file, SocketChannel client) throws IOException
 	{
 		//Check that the file does not already exist.
 		if (database.containsKey(file))
@@ -116,23 +120,40 @@ public class Controller extends Server implements Loggable
 		database.put(file, new MetaData(State.STORE_IN_PROGRESS));
 		
 		//Get R of the dstores.
-		List<SocketChannel> dstores = getRdstores();
-		int[] dstorePorts = getPorts(dstores);
+		List<Map.Entry<SocketChannel, Integer>> dstores = getRdstores();
+		String dstorePorts = getPorts(dstores);
 		
 		//Set the dsotres ready to read.
 		dstores.forEach(dstore -> {
-			try { dstore.register(selector, SelectionKey.OP_READ); }
+			try { dstore.getKey().register(selector, SelectionKey.OP_READ); }
 			catch (ClosedChannelException e) { e.printStackTrace(); }
 		});
 		
 		//Send the ports to the client.
-		MessageSocket.sendMessage(OpCodes.STORE_TO, Arrays.toString(dstorePorts), client);
+		MessageSocket.sendMessage(OpCodes.STORE_TO, dstorePorts, client);
 	}
 	
-	private List<SocketChannel> getRdstores() { return new ArrayList<>(); }
-	private int[] getPorts(List<SocketChannel> dstores) { return new int[0]; }
+	private List<Map.Entry<SocketChannel, Integer>> getRdstores()
+	{
+		Collections.shuffle(dstores);
+		return dstores.subList(0, R);
+	}
 	
-	private void handleLoadRequest(final String file, final SocketChannel client)
+	private String getPorts(List<Map.Entry<SocketChannel, Integer>> dstores)
+	{
+		StringBuilder ports = new StringBuilder();
+		dstores.forEach(dstore -> ports.append(dstore.getValue()).append(" "));
+		return ports.toString();
+	}
+	
+	//TODO: fix this lol
+	private void handleStoreAck(String operand, SocketChannel client) throws IOException
+	{
+		database.get(operand).addDStorePort(Integer.parseInt(
+				client.getLocalAddress().toString().substring(client.getLocalAddress().toString().indexOf(':') + 1)));
+	}
+	
+	private void handleLoadRequest(final String file, SocketChannel client)
 	{
 		try
 		{
@@ -142,12 +163,12 @@ public class Controller extends Server implements Loggable
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	private int selectDstore(String file) { return database.get(file).getDstorePorts()[0]; }
+	private int selectDstore(String file) { return database.get(file).getDstorePorts().get(0); }
 	
-	private void handleRemoveRequest(final String file, final SocketChannel client)
+	private void handleRemoveRequest(final String file, SocketChannel client)
 	{
 		database.get(file).setState(State.REMOVE_IN_PROGRESS);
-		int[] dstorePorts = database.get(file).getDstorePorts();
+		List<Integer> dstorePorts = database.get(file).getDstorePorts();
 		
 		for (int port : dstorePorts)
 		{

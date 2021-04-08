@@ -1,6 +1,8 @@
 package database;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A class to store the information of a file. This stores the current
@@ -11,14 +13,14 @@ public class MetaData implements Serializable
 {
 	private State state;
 	private long size;
-	private int[] dstorePorts;
+	private ArrayList<Integer> dstorePorts = new ArrayList<>();
 	
 	public MetaData(State state)
 	{
 		this.state = state;
 	}
 	
-	public MetaData(State state, int size, int[] dstorePorts)
+	public MetaData(State state, int size, ArrayList<Integer> dstorePorts)
 	{
 		this.state = state;
 		this.size = size;
@@ -27,7 +29,7 @@ public class MetaData implements Serializable
 	
 	public State getState() { return state; }
 	public long getSize() { return size; }
-	public int[] getDstorePorts() { return dstorePorts; }
+	public List<Integer> getDstorePorts() { return dstorePorts; }
 	
 	/**
 	 * Set the current state of a file in the database.
@@ -35,6 +37,8 @@ public class MetaData implements Serializable
 	 * @param state Current state of the file.
 	 */
 	public void setState(State state) { this.state = state; }
+	
+	public void addDStorePort(int port) { this.dstorePorts.add(port); }
 	
 	/**
 	 * A simple parser over the State enum to get the name of a state.

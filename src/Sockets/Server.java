@@ -29,7 +29,7 @@ public abstract class Server
 			selector = Selector.open();
 			ServerSocketChannel socket = ServerSocketChannel.open();
 			ServerSocket serverSocket = socket.socket();
-			serverSocket.bind(new InetSocketAddress("localhost", port));
+			serverSocket.bind(new InetSocketAddress(port));
 			socket.configureBlocking(false);
 			int ops = socket.validOps();
 			socket.register(selector, ops, null);
@@ -41,6 +41,7 @@ public abstract class Server
 					selector.select();
 					Set<SelectionKey> selectedKeys = selector.selectedKeys();
 					Iterator<SelectionKey> iter = selectedKeys.iterator();
+					
 					while (iter.hasNext())
 					{
 						SelectionKey key = iter.next();
@@ -87,6 +88,6 @@ public abstract class Server
 		Logger.info.log("Connection Accepted from: " + client.toString() + ".");
 	}
 	
-	protected abstract void handleRead(final SelectionKey key) throws IOException;
-	protected abstract void handleWrite(final SelectionKey key) throws IOException;
+	protected abstract void handleRead(SelectionKey key) throws IOException;
+	protected abstract void handleWrite(SelectionKey key) throws IOException;
 }

@@ -28,7 +28,7 @@ public class ClientBackend implements Loggable
 		controller = new MessageClient(cport);
 	}
 	
-	protected void store(String filename)
+	protected void store(final String filename)
 	{
 		try
 		{
@@ -54,7 +54,7 @@ public class ClientBackend implements Loggable
 		long fileSize = Files.size(filePath);
 		
 		MessageClient dstore = new MessageClient(port);
-		
+		//TODO: make filename only the filename
 		dstore.sendMessage(OpCodes.DSTORE_STORE_REQUEST, filename + " " + fileSize);
 		
 		if (Integer.parseInt(dstore.receiveMessage()) != OpCodes.ACK)

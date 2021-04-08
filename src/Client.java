@@ -32,13 +32,13 @@ public class Client extends ClientBackend
 				switch (command[0])
 				{
 					case "STORE":
-						store(command[1]);
+						if (command.length == 2) store(command[1]);
 						break;
 					case "LOAD":
-						load(command[1]);
+						if (command.length == 2) load(command[1]);
 						break;
 					case "REMOVE":
-						remove(command[1]);
+						if (command.length == 2) remove(command[1]);
 						break;
 					case "--help":
 						Logger.info.log("Usage: STORE filename");

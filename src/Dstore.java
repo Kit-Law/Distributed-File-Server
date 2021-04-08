@@ -23,8 +23,33 @@ public class Dstore extends Server implements Loggable
 	private MessageClient controller;
 	
 	//Dstore port cport timeout file_folder
-	public static void main(String[] args)
+	public static void main(String[] args) throws InterruptedException
 	{
+		/*Thread d1 = new Thread("d1")
+		{
+			public void run() { new Dstore(401, Integer.parseInt(args[1]), Integer.parseInt(args[2]), "./d1"); }
+		};
+		
+		Thread d2 = new Thread("d2")
+		{
+			public void run() { new Dstore(402, Integer.parseInt(args[1]), Integer.parseInt(args[2]), "./d2"); }
+		};
+		
+		Thread d3 = new Thread("d3")
+		{
+			public void run() { new Dstore(403, Integer.parseInt(args[1]), Integer.parseInt(args[2]), "./d3"); }
+		};
+		
+		//Begin all of the threads.
+		d1.start();
+		d2.start();
+		d3.start();
+		
+		//Wait for all of the threads to finish.
+		d1.join();
+		d2.join();
+		d3.join();*/
+		
 		new Dstore(Integer.parseInt(args[0]), Integer.parseInt(args[1]), Integer.parseInt(args[2]), args[3]);
 	}
 	
@@ -41,6 +66,9 @@ public class Dstore extends Server implements Loggable
 		
 		try
 		{
+			if (!Files.isDirectory(Paths.get(file_folder)))
+				Files.createDirectory(Paths.get(file_folder));
+			
 			controller = new MessageClient(cport);
 			controller.sendMessage(OpCodes.DSTORE_CONNECT, String.valueOf(port));
 		}
@@ -60,6 +88,9 @@ public class Dstore extends Server implements Loggable
 		SocketChannel client = (SocketChannel) key.channel();
 		
 		String msg = MessageSocket.receiveMessage(client);
+		//TODO: fix this
+		if (msg.equals(""))
+			return;
 		
 		switch (MessageSocket.getOpcode(msg))
 		{
@@ -81,11 +112,11 @@ public class Dstore extends Server implements Loggable
 	private void handleStoreRequest(final String operand, final SocketChannel client) throws IOException
 	{
 		String filename = operand.substring(0, operand.indexOf(' '));
-		long filesize = Long.parseLong(operand.substring(operand.indexOf(' ')));
+		long filesize = Long.parseLong(operand.substring(operand.indexOf(' ') + 1));
 		
 		MessageSocket.sendMessage(OpCodes.ACK, "", client);
 		
-		FileReceiver.receive(client, Paths.get("./" + file_folder + "/" + filename), filesize);
+		FileReceiver.receive(client, Paths.get(file_folder + "/" + filename), filesize);
 		
 		controller.sendMessage(OpCodes.STORE_ACK, filename);
 	}
@@ -100,5 +131,11 @@ public class Dstore extends Server implements Loggable
 		Files.delete(Paths.get("./" + file_folder + "/" + filename));
 		
 		controller.sendMessage(OpCodes.REMOVE_ACK, filename);
+	}
+	
+	@Override
+	public final String toString()
+	{
+		return "DStore-" + port + "-" + System.currentTimeMillis();
 	}
 }

@@ -10,7 +10,7 @@ public class MessageClient extends MessageSocket
 {
 	private SocketChannel socket;
 	
-	public MessageClient(int port)
+	public MessageClient(final int port)
 	{
 		try
 		{
@@ -42,5 +42,5 @@ public class MessageClient extends MessageSocket
 		return socket;
 	}
 	
-	public final SocketChannel getSocket() { return socket; }
+	public SocketChannel getSocket() { return socket; }
 }
