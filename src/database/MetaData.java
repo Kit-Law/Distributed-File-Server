@@ -37,6 +37,7 @@ public class MetaData implements Serializable
 	 * @param state Current state of the file.
 	 */
 	public void setState(State state) { this.state = state; }
+	public void setSize(long size) { this.size = size; }
 	
 	public void addDStorePort(int port) { this.dstorePorts.add(port); }
 	

@@ -33,7 +33,6 @@ public final class FileSender
 			}
 			
 			channel.close();
-			client.close();
 		}
 		catch (Exception e) { e.printStackTrace(); }
 	}

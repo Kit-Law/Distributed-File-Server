@@ -56,11 +56,6 @@ public abstract class Server
 							handleRead(key);
 						}
 						
-						if (key.isWritable())
-						{
-							handleWrite(key);
-						}
-						
 						iter.remove();
 					}
 				}

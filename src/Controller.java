@@ -17,6 +17,8 @@ public class Controller extends Server implements Loggable
 	private final int rebalance_period;
 	private static HashMap<String, MetaData> database = new HashMap<>();
 	private static ArrayList<Map.Entry<SocketChannel, Integer>> dstores = new ArrayList<>();
+	//TODO: make this better
+	private static HashMap<String, SocketChannel> stores = new HashMap<>();
 	
 	//java Controller cport R timeout
 	public static void main(String[] args)
@@ -53,7 +55,7 @@ public class Controller extends Server implements Loggable
 				handleStoreRequest(MessageSocket.getOperand(msg), client);
 				break;
 			case OpCodes.STORE_ACK:
-				handleStoreAck(MessageSocket.getOperand(msg), client);
+				handleStoreAck(MessageSocket.getOperand(msg));
 				break;
 			case OpCodes.CONTROLLER_LOAD_REQUEST:
 				handleLoadRequest(MessageSocket.getOperand(msg), client);
@@ -111,10 +113,11 @@ public class Controller extends Server implements Loggable
 	
 	private void handleStoreRequest(final String file, SocketChannel client) throws IOException
 	{
-		//Check that the file does not already exist.
 		if (database.containsKey(file))
-			//TODO: make an exception class
-			throw new IOException("File already existed lol");
+			if (database.get(file).getState() == State.REMOVE_COMPLETE)
+				database.remove(file);
+			else
+				throw new IOException("File already existed lol");
 		
 		//Create a new database entry.
 		database.put(file, new MetaData(State.STORE_IN_PROGRESS));
@@ -131,6 +134,8 @@ public class Controller extends Server implements Loggable
 		
 		//Send the ports to the client.
 		MessageSocket.sendMessage(OpCodes.STORE_TO, dstorePorts, client);
+		
+		stores.put(file, client);
 	}
 	
 	private List<Map.Entry<SocketChannel, Integer>> getRdstores()
@@ -147,10 +152,21 @@ public class Controller extends Server implements Loggable
 	}
 	
 	//TODO: fix this lol
-	private void handleStoreAck(String operand, SocketChannel client) throws IOException
+	private void handleStoreAck(String operand) throws IOException
 	{
-		database.get(operand).addDStorePort(Integer.parseInt(
-				client.getLocalAddress().toString().substring(client.getLocalAddress().toString().indexOf(':') + 1)));
+		String[] args = operand.split(" ");
+		
+		database.get(args[0]).addDStorePort(Integer.parseInt(args[1]));
+		
+		if (database.get(args[0]).getDstorePorts().size() == R)
+		{
+			SocketChannel c = stores.get(args[0]);
+			
+			database.get(args[0]).setSize(Long.parseLong(args[2]));
+			MessageSocket.sendMessage(OpCodes.STORE_COMPLETE, "", c);
+			
+			stores.remove(args[0]);
+		}
 	}
 	
 	private void handleLoadRequest(final String file, SocketChannel client)
@@ -158,7 +174,7 @@ public class Controller extends Server implements Loggable
 		try
 		{
 			int port = selectDstore(file);
-			MessageSocket.sendMessage(OpCodes.LOAD_FROM, String.valueOf(port), client);
+			MessageSocket.sendMessage(OpCodes.LOAD_FROM, port + " " + database.get(file).getSize(), client);
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}

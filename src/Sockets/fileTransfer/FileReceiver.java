@@ -18,6 +18,8 @@ public class FileReceiver
 			FileChannel channel = FileChannel.open(filePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
 			
 			transfer(client, channel, size);
+			
+			channel.close();
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}

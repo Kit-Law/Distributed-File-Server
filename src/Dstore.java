@@ -103,6 +103,9 @@ public class Dstore extends Server implements Loggable
 			case OpCodes.DSTORE_REMOVE_REQUEST:
 				handleRemoveRequest(MessageSocket.getOperand(msg));
 		}
+		
+		key.cancel();
+		key.channel().close();
 	}
 	
 	@Override
@@ -118,7 +121,7 @@ public class Dstore extends Server implements Loggable
 		
 		FileReceiver.receive(client, Paths.get(file_folder + "/" + filename), filesize);
 		
-		controller.sendMessage(OpCodes.STORE_ACK, filename);
+		controller.sendMessage(OpCodes.STORE_ACK, filename + " " + port + " " + filesize);
 	}
 	
 	private void handleLoadRequest(final String filename, final SocketChannel client)

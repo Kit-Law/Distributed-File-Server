@@ -32,7 +32,7 @@ public class MessageSocket
 	
 	public static int getOpcode(final String msg)
 	{
-		return Integer.parseInt(msg.substring(0, msg.indexOf(' ')));
+		return (msg.contains(" ")) ? Integer.parseInt(msg.substring(0, msg.indexOf(' '))) : Integer.parseInt(msg);
 	}
 	
 	public static String getOperand(final String msg)

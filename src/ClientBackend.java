@@ -61,6 +61,13 @@ public class ClientBackend implements Loggable
 			throw new IOException("??");
 		
 		FileSender.transfer(filePath, dstore.getSocket());
+		
+		dstore.getSocket().close();
+		
+		if (Integer.parseInt(controller.receiveMessage()) != OpCodes.STORE_COMPLETE)
+			throw new IOException("??");
+		
+		Logger.info.log("Store complete.");
 	}
 	
 	protected void load(final String filename)
@@ -75,12 +82,16 @@ public class ClientBackend implements Loggable
 				//TODO: make an exception class
 				throw new IOException("Wrong opcode received");
 			
-			MessageClient dstore = new MessageClient(Integer.parseInt(MessageClient.getOperand(response)));
+			String[] operands = MessageClient.getOperand(response).split(" ");
+			
+			MessageClient dstore = new MessageClient(Integer.parseInt(MessageClient.getOperand(operands[0])));
 			
 			dstore.sendMessage(OpCodes.LOAD_DATA, filename);
 			
-			int size = 0; //TODO: wtf kirk
+			int size = Integer.parseInt(operands[1]);
 			FileReceiver.receive(dstore.getSocket(), Paths.get("./" + filename), size);
+			
+			Logger.info.log("Load complete.");
 		}
 		catch (IOException e) { e.printStackTrace(); }
 	}
