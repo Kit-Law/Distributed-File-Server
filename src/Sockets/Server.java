@@ -80,7 +80,7 @@ public abstract class Server
 		// Register that client is reading this channel
 		client.register(selector, SelectionKey.OP_READ);
 		
-		Logger.info.log("Connection Accepted from: " + client.toString() + ".");
+		//Logger.info.log("Connection Accepted from: " + client.toString() + ".");
 	}
 	
 	protected abstract void handleRead(SelectionKey key) throws IOException;

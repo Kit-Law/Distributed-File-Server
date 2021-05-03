@@ -1,10 +1,11 @@
-import Constants.OpCodes;
+//import Constants.OpCodes;
+import Constants.Protocol;
 import Sockets.MessageSocket;
 import Sockets.Server;
 import Sockets.MessageClient;
 import Sockets.fileTransfer.FileReceiver;
 import Sockets.fileTransfer.FileSender;
-import logger.Loggable;
+//import logger.Loggable;
 import logger.Logger;
 
 import java.io.IOException;
@@ -13,7 +14,7 @@ import java.nio.channels.SocketChannel;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class Dstore extends Server implements Loggable
+public class Dstore extends Server //implements Loggable
 {
 	private int cport;
 	private int port;
@@ -62,7 +63,7 @@ public class Dstore extends Server implements Loggable
 		this.timeout = timeout;
 		this.file_folder = file_folder;
 		
-		logger.Logger.setLogFile(this);
+		//logger.Logger.setLogFile(this);
 		
 		try
 		{
@@ -70,7 +71,7 @@ public class Dstore extends Server implements Loggable
 				Files.createDirectory(Paths.get(file_folder));
 			
 			controller = new MessageClient(cport);
-			controller.sendMessage(OpCodes.DSTORE_CONNECT, String.valueOf(port));
+			controller.sendMessage(Protocol.JOIN_TOKEN, String.valueOf(port));
 		}
 		catch (IOException e)
 		{
@@ -83,7 +84,7 @@ public class Dstore extends Server implements Loggable
 	@Override
 	protected void handleRead(final SelectionKey key) throws IOException
 	{
-		Logger.info.log("Reading...");
+		//Logger.info.log("Reading...");
 		// create a ServerSocketChannel to read the request
 		SocketChannel client = (SocketChannel) key.channel();
 		
@@ -94,13 +95,13 @@ public class Dstore extends Server implements Loggable
 		
 		switch (MessageSocket.getOpcode(msg))
 		{
-			case OpCodes.DSTORE_STORE_REQUEST:
+			case Protocol.STORE_TOKEN:
 				handleStoreRequest(MessageSocket.getOperand(msg), client);
 				break;
-			case OpCodes.LOAD_DATA:
+			case Protocol.LOAD_DATA_TOKEN:
 				handleLoadRequest(MessageSocket.getOperand(msg), client);
 				break;
-			case OpCodes.DSTORE_REMOVE_REQUEST:
+			case Protocol.REMOVE_TOKEN:
 				handleRemoveRequest(MessageSocket.getOperand(msg));
 		}
 		
@@ -117,11 +118,11 @@ public class Dstore extends Server implements Loggable
 		String filename = operand.substring(0, operand.indexOf(' '));
 		long filesize = Long.parseLong(operand.substring(operand.indexOf(' ') + 1));
 		
-		MessageSocket.sendMessage(OpCodes.ACK, "", client);
+		MessageSocket.sendMessage(Protocol.ACK_TOKEN, "", client);
 		
 		FileReceiver.receive(client, Paths.get(file_folder + "/" + filename), filesize);
 		
-		controller.sendMessage(OpCodes.STORE_ACK, filename + " " + port + " " + filesize);
+		controller.sendMessage(Protocol.STORE_ACK_TOKEN, filename + " " + port + " " + filesize);
 	}
 	
 	private void handleLoadRequest(final String filename, final SocketChannel client)
@@ -133,7 +134,7 @@ public class Dstore extends Server implements Loggable
 	{
 		Files.delete(Paths.get("./" + file_folder + "/" + filename));
 		
-		controller.sendMessage(OpCodes.REMOVE_ACK, filename);
+		controller.sendMessage(Protocol.REMOVE_ACK_TOKEN, filename);
 	}
 	
 	@Override
