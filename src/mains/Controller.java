@@ -45,6 +45,7 @@ public class Controller extends MessageClient implements Runnable
 		// create a ServerSocketChannel to read the request
 		
 		String msg = receiveMessage();
+		System.out.println(msg);
 		String[] operand = MessageSocket.getOperand(msg);
 		
 		switch (MessageSocket.getOpcode(msg))
@@ -91,12 +92,23 @@ public class Controller extends MessageClient implements Runnable
 		
 		//Send the ports to the client.
 		sendMessage(Protocol.STORE_TO_TOKEN, ControllerServer.getRdstorePorts());
+		
+		while (!ControllerServer.isReplicatedRTimes(file))
+		{
+			try
+			{
+				Thread.sleep(100);
+			}
+			catch (Exception e) { e.printStackTrace(); }
+		}
+		
+		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
+		ControllerServer.setFileState(file, State.STORE_COMPLETE);
 	}
 	
 	private void handleStoreAck(String filename) throws IOException
 	{
-		if (ControllerServer.addNewDatabasePort(filename, client.getPort()))
-			sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
+		ControllerServer.addNewDatabasePort(filename, client.getLocalPort());		//TODO: this is wrong
 	}
 	
 	private void handleLoadRequest(final String file) throws IOException

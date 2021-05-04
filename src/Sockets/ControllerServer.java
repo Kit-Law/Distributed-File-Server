@@ -46,17 +46,14 @@ public class ControllerServer extends Server
 			if (database.get(filename).getState() == State.REMOVE_COMPLETE)
 				database.remove(filename);
 			else
-				throw new IOException("File already existed lol");
+				database.remove(filename); //throw new IOException("File already existed lol"); //TODO: Add this back when doing error handelling
 	}
 	
 	public static void addDStore(int port, Socket dstore) { dstores.add(new AbstractMap.SimpleEntry<>(port, dstore)); }
 	
 	public static void newDatabaseEntry(String filename, MetaData metaData) { database.put(filename, metaData); }
-	public static boolean addNewDatabasePort(String filename, Integer port)
-	{
-		database.get(filename).addDStorePort(port);
-		return database.get(filename).getDstorePorts().size() == R;
-	}
+	public static void addNewDatabasePort(String filename, Integer port) { database.get(filename).addDStorePort(port); }
+	public static boolean isReplicatedRTimes(String filename) { return database.get(filename).getDstorePorts().size() == R; }
 	public static void setFileState(String filename, State state) { database.get(filename).setState(state); }
 	
 	public static Socket[] getDStores(String filename)
