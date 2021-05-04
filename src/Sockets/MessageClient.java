@@ -1,20 +1,26 @@
 package Sockets;
 
-import logger.Logger;
-
-import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.nio.channels.SocketChannel;
+import java.io.*;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 
 public class MessageClient extends MessageSocket
 {
-	private SocketChannel socket;
+	private BufferedReader in;
+	private PrintWriter out;
+	
+	public MessageClient(DataInputStream in, DataOutputStream out)
+	{
+		this.in = new BufferedReader(new InputStreamReader(in));
+		this.out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8)), true);
+	}
 	
 	public MessageClient(final int port)
 	{
 		try
 		{
-			socket = connectToServer(port);
+			connectToServer(port);
 		}
 		catch (IOException e)
 		{
@@ -23,24 +29,23 @@ public class MessageClient extends MessageSocket
 		}
 	}
 	
-	public void sendMessage(final String opcode, final String msg) throws IOException
+	public void sendMessage(final String opcode, final String msg)
 	{
-		sendMessage(opcode, msg, socket);
+		out.println(opcode + " " + msg);
 	}
 	
-	public final String receiveMessage() throws IOException
+	public String receiveMessage() throws IOException
 	{
-		return receiveMessage(socket);
+		return in.readLine();
 	}
 	
-	private static SocketChannel connectToServer(final int port) throws IOException
+	private void connectToServer(final int port) throws IOException
 	{
 		//Logger.info.log("Connecting to socket...");
-		SocketChannel socket = SocketChannel.open(new InetSocketAddress(port));
+		Socket socket = new Socket(InetAddress.getLoopbackAddress(), port);
 		//Logger.info.log("Connected to socket: " + socket);
-		
-		return socket;
+
+		this.in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		this.out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), StandardCharsets.UTF_8)), true);
 	}
-	
-	public SocketChannel getSocket() { return socket; }
 }

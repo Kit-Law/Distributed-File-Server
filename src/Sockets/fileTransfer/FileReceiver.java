@@ -3,6 +3,7 @@ package Sockets.fileTransfer;
 import Constants.Values;
 
 import java.io.IOException;
+import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
@@ -11,7 +12,7 @@ import java.nio.file.StandardOpenOption;
 //TODO: This is stupid...
 public class FileReceiver
 {
-	public static void receive(final SocketChannel client, final Path filePath, final long size)
+	public static void receive(final Socket client, final Path filePath, final long size)
 	{
 		try
 		{
@@ -24,12 +25,12 @@ public class FileReceiver
 		catch (IOException e) { e.printStackTrace(); }
 	}
 	
-	private static void transfer(final SocketChannel client, final FileChannel channel, final long bytes) throws IOException
+	private static void transfer(final Socket client, final FileChannel channel, final long bytes) throws IOException
 	{
 		long position = 0L;
 		while (position < bytes)
 		{
-			position += channel.transferFrom(client, position, Values.TRANSFER_MAX_SIZE);
+			position += channel.transferFrom(client.getChannel(), position, Values.TRANSFER_MAX_SIZE);
 		}
 	}
 }

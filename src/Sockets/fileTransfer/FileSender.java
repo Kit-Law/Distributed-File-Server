@@ -2,7 +2,8 @@ package Sockets.fileTransfer;
 
 import Constants.Values;
 
-import java.net.InetSocketAddress;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.nio.channels.FileChannel;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
@@ -14,11 +15,11 @@ public final class FileSender
 	
 	public static void transfer(final Path filePath, final int port)
 	{
-		try { transfer(filePath, SocketChannel.open(new InetSocketAddress(port))); }
+		try { transfer(filePath, new Socket(InetAddress.getLoopbackAddress(), port)); }
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
-	public static void transfer(final Path filePath, final SocketChannel client)
+	public static void transfer(final Path filePath, final Socket client)
 	{
 		try
 		{
@@ -29,7 +30,7 @@ public final class FileSender
 			
 			while (position < size)
 			{
-				position += channel.transferTo(position, Values.TRANSFER_MAX_SIZE, client);
+				position += channel.transferTo(position, Values.TRANSFER_MAX_SIZE, client.getChannel());
 			}
 			
 			channel.close();

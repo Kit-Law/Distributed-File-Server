@@ -15,16 +15,10 @@ public class MetaData implements Serializable
 	private long size;
 	private ArrayList<Integer> dstorePorts = new ArrayList<>();
 	
-	public MetaData(State state)
-	{
-		this.state = state;
-	}
-	
-	public MetaData(State state, int size, ArrayList<Integer> dstorePorts)
+	public MetaData(State state, long size)
 	{
 		this.state = state;
 		this.size = size;
-		this.dstorePorts = dstorePorts;
 	}
 	
 	public State getState() { return state; }

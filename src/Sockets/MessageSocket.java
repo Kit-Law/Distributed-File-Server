@@ -1,33 +1,18 @@
 package Sockets;
 
-import logger.Logger;
-
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
+import java.io.*;
+import java.net.Socket;
 
 public class MessageSocket
 {
-	public static void sendMessage(final String opcode, final String msg, SocketChannel socket) throws IOException
+	public static void sendMessage(final String opcode, final String msg, Socket socket) throws IOException
 	{
-		ByteBuffer buffer = ByteBuffer.allocate(64);
-		
-		buffer.put((opcode + " " + msg).getBytes());
-		buffer.flip();
-		int bytesWritten = socket.write(buffer);
-		
-		//Logger.info.log("Sent opcode: " + opcode + ", With message: \"" + msg + "\", " + bytesWritten + " bytes to: " + socket + ".");
+		new PrintWriter(new BufferedWriter(new OutputStreamWriter(socket.getOutputStream(), "UTF-8")), true).println(opcode + " " + msg);
 	}
 	
-	public static String receiveMessage(SocketChannel socket) throws IOException
+	public static String receiveMessage(Socket socket) throws IOException
 	{
-		ByteBuffer buffer = ByteBuffer.allocate(64);
-		
-		socket.read(buffer);
-		String response = new String(buffer.array()).trim();
-		//Logger.info.log("Received response: \"" + response + "\" from socket: " + socket);
-		
-		return response;
+		return new BufferedReader(new InputStreamReader(socket.getInputStream())).readLine();
 	}
 	
 	public static String getOpcode(final String msg)
@@ -35,8 +20,8 @@ public class MessageSocket
 		return (msg.contains(" ")) ? msg.substring(0, msg.indexOf(' ')) : msg;
 	}
 	
-	public static String getOperand(final String msg)
+	public static String[] getOperand(final String msg)
 	{
-		return msg.substring(msg.indexOf(' ') + 1);
+		return msg.substring(msg.indexOf(' ') + 1).split(" ");
 	}
 }
