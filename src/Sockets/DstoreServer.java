@@ -7,10 +7,10 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Objects;
 
 public class DstoreServer extends Server
 {
-	private static int cport;
 	private static String file_folder;
 	
 	private static MessageClient controller;
@@ -19,7 +19,6 @@ public class DstoreServer extends Server
 	{
 		super(port, timeout);
 		
-		DstoreServer.cport = cport;
 		DstoreServer.file_folder = file_folder;
 		
 		try
@@ -50,5 +49,7 @@ public class DstoreServer extends Server
 	}
 	
 	public static String getFile_folder() { return file_folder; }
-	public static void messageController(final String opcode, final String msg) throws IOException { controller.sendMessage(opcode, msg); }
+	public static void messageController(final String opcode, final String msg) { controller.sendMessage(opcode, msg); }
+	
+	public static String list() { return String.join(" ", Objects.requireNonNull(new File(file_folder).list())); }
 }

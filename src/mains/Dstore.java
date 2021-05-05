@@ -50,6 +50,9 @@ public class Dstore extends MessageClient implements Runnable
 		
 		switch (MessageSocket.getOpcode(msg))
 		{
+			case Protocol.LIST_TOKEN:
+				handleListRequest();
+				break;
 			case Protocol.STORE_TOKEN:
 				handleStoreRequest(operand[0], Long.parseLong(operand[1]));
 				break;
@@ -61,6 +64,11 @@ public class Dstore extends MessageClient implements Runnable
 		}
 		
 		client.close();
+	}
+	
+	private void handleListRequest() throws IOException
+	{
+		MessageSocket.sendMessage(Protocol.LIST_TOKEN, DstoreServer.list(), client);
 	}
 	
 	private void handleStoreRequest(final String filename, long filesize) throws IOException

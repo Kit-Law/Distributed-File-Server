@@ -9,6 +9,8 @@ import database.State;
 
 import java.io.*;
 import java.net.Socket;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Controller extends MessageClient implements Runnable
 {
@@ -86,21 +88,17 @@ public class Controller extends MessageClient implements Runnable
 	private void handleStoreRequest(final String file, final long filesize) throws IOException
 	{
 		ControllerServer.freeFile(file);
-			
+		Stream<Integer> dstorePorts = ControllerServer.getRdstores();
+		
 		//Creates a new database entry
-		ControllerServer.newDatabaseEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize));
+		ControllerServer.newDatabaseEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, (Integer[]) dstorePorts.toArray()));
 		
 		//Send the ports to the client.
-		sendMessage(Protocol.STORE_TO_TOKEN, ControllerServer.getRdstorePorts());
+		sendMessage(Protocol.STORE_TO_TOKEN, dstorePorts.map(Object::toString).collect(Collectors.joining(" ")));
 		
 		while (!ControllerServer.isReplicatedRTimes(file))
-		{
-			try
-			{
-				Thread.sleep(100);
-			}
+			try { Thread.sleep(100); }
 			catch (Exception e) { e.printStackTrace(); }
-		}
 		
 		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
 		ControllerServer.setFileState(file, State.STORE_COMPLETE);
@@ -108,7 +106,7 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleStoreAck(String filename) throws IOException
 	{
-		ControllerServer.addNewDatabasePort(filename, client.getLocalPort());		//TODO: this is wrong
+		ControllerServer.addNewDatabasePort(filename);
 	}
 	
 	private void handleLoadRequest(final String file) throws IOException

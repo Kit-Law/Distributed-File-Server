@@ -11,11 +11,20 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+class MutableInt
+{
+	int value = 1;
+	
+	public void increment () { ++value; }
+	public int get () { return value; }
+}
+
 public class ControllerServer extends Server
 {
 	private static int R;
 	private static int rebalance_period;
 	private static HashMap<String, MetaData> database = new HashMap<>();
+	private static HashMap<String, MutableInt> storeAcks = new HashMap<>();
 	private static ArrayList<Map.Entry<Integer, Socket>> dstores = new ArrayList<>();
 	
 	public ControllerServer(final int cport, final int R, final int timeout, final int rebalance_period)
@@ -52,25 +61,32 @@ public class ControllerServer extends Server
 	public static void addDStore(int port, Socket dstore) { dstores.add(new AbstractMap.SimpleEntry<>(port, dstore)); }
 	
 	public static void newDatabaseEntry(String filename, MetaData metaData) { database.put(filename, metaData); }
-	public static void addNewDatabasePort(String filename, Integer port) { database.get(filename).addDStorePort(port); }
-	public static boolean isReplicatedRTimes(String filename) { return database.get(filename).getDstorePorts().size() == R; }
+	public static void addNewDatabasePort(String filename)
+	{
+		MutableInt count = storeAcks.get(filename);
+		if (count == null)
+			storeAcks.put(filename, new MutableInt());
+		else
+			count.increment();
+	}
+	public static boolean isReplicatedRTimes(String filename) { return storeAcks.get(filename).get() == R; }
 	public static void setFileState(String filename, State state) { database.get(filename).setState(state); }
 	
 	public static Socket[] getDStores(String filename)
 	{
-		return (Socket[]) database.get(filename).getDstorePorts().stream()
+		return (Socket[]) Arrays.stream(database.get(filename).getDstorePorts())
 				.map((port) -> dstores.get(port)).toArray();
 	}
 	
-	public static int selectDStore(String filename) { return database.get(filename).getDstorePorts().get(0); }
+	public static int selectDStore(String filename) { return database.get(filename).getDstorePorts()[0]; }
 	
 	public static int getR() { return R; }
 	public static int getRebalance_period() { return rebalance_period; }
 	public static String getFileList() { return database.keySet().stream().map(Object::toString).collect(Collectors.joining(" ")); }
 	public static long getFileSize(String filename) { return database.get(filename).getSize(); }
-	public static String getRdstorePorts() { return getRdstores().map(Object::toString).collect(Collectors.joining(" ")); }
+	//public static String getRdstorePorts() { return getRdstores().map(Object::toString).collect(Collectors.joining(" ")); }
 	
-	private static Stream<Integer> getRdstores() { Collections.shuffle(dstores); return dstores.subList(0, R).stream().map(Map.Entry::getKey); }
+	public static Stream<Integer> getRdstores() { Collections.shuffle(dstores); return dstores.subList(0, R).stream().map(Map.Entry::getKey); }
 	
 	public static void saveDatabase()
 	{
