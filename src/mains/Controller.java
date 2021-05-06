@@ -4,6 +4,7 @@ import Constants.Protocol;
 import Sockets.ControllerServer;
 import Sockets.MessageClient;
 import Sockets.MessageSocket;
+import Sockets.RebalancingControllerServer;
 import database.MetaData;
 import database.State;
 
@@ -78,123 +79,8 @@ public class Controller extends MessageClient implements Runnable
 	{
 		ControllerServer.addDStore(Integer.parseInt(port), client);
 		
-		handleRebalance();
+		RebalancingControllerServer.handleRebalance();
 		//Logger.info.log("DStore: " + dstore + ", has been added.");
-	}
-	
-	private void handleRebalance() throws IOException
-	{
-		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
-		HashMap<String, MutableInt> fileCounts = new HashMap<>();
-		
-		for (Socket dstore : ControllerServer.getDStores())
-		{
-			sendMessage(Protocol.LIST_TOKEN, "", dstore);
-			
-			String msg = receiveMessage(dstore);
-			
-			if (!getOpcode(msg).equals(Protocol.LIST_TOKEN))
-				throw new IOException("Wrong Opcode received.");
-			
-			dstoreFiles.add(Map.entry(dstore, getOperand(msg)));
-			
-			for (String file : getOperand(msg))
-				MutableInt.incrementCount(fileCounts, file);
-		}
-		
-		int max = (int) Math.ceil(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
-		
-		ArrayList<Map.Entry<String, MutableInt>> filesToAlter = new ArrayList<>();
-		
-		for (Map.Entry<String, MutableInt> file : fileCounts.entrySet())
-			if (file.getValue().get() != ControllerServer.getR())
-				filesToAlter.add(Map.entry(file.getKey(), new MutableInt(ControllerServer.getR() - file.getValue().get())));
-		
-		HashMap<Socket, ArrayList<String>> toRemove = new HashMap<>();
-		HashMap<String, ArrayList<Integer>> toStore = new HashMap<>();
-		
-		dstoreFiles.sort(Comparator.comparingInt(e -> e.getValue().length));
-		filesToAlter.sort(Comparator.comparingInt(e -> e.getValue().get()));
-		
-		for (int i = dstoreFiles.size() - 1; i >= 0; i--)
-		{
-			ArrayList<String> buffer = new ArrayList<>();
-			int times = Math.min(filesToAlter.size(), dstoreFiles.get(i).getValue().length);
-			
-			for (int j = 0; j < times; j++)
-			{
-				if (filesToAlter.get(j).getValue().get() < 0 &&
-						Arrays.asList(dstoreFiles.get(i).getValue()).contains(filesToAlter.get(j).getKey()))
-				{
-					buffer.add(filesToAlter.get(j).getKey());
-					filesToAlter.get(j).getValue().increment();
-				}
-				else if (times < filesToAlter.size()) times++;
-			}
-			
-			if (buffer.size() > 0)
-				toRemove.put(dstoreFiles.get(i).getKey(), (ArrayList<String>) buffer.clone());
-		}
-		
-		dstoreFiles.sort(Comparator.comparingInt(e -> e.getValue().length -
-				(toRemove.containsKey(e.getKey()) ? toRemove.get(e.getKey()).size() : 0)));
-		
-		for (int i = 0; i < dstoreFiles.size(); i++)
-		{
-			ArrayList<String> buffer = new ArrayList<>();
-			int times = max - dstoreFiles.get(i).getValue().length +
-					(toRemove.containsKey(dstoreFiles.get(i).getKey()) ? toRemove.get(dstoreFiles.get(i).getKey()).size() : 0);
-			if (times > filesToAlter.size()) times = filesToAlter.size();
-			
-			for (int j = 0; j < times; j++)
-			{
-				if (filesToAlter.get(j).getValue().get() > 0 &&
-						!Arrays.asList(dstoreFiles.get(i).getValue()).contains(filesToAlter.get(j).getKey()))
-				{
-					buffer.add(filesToAlter.get(j).getKey());
-					filesToAlter.get(j).getValue().decrement();
-				}
-				else if (times < filesToAlter.size()) times++;
-			}
-			
-			for (String file : buffer)
-			{
-				if (toStore.containsKey(file))
-					toStore.get(file).add(ControllerServer.getDStorePort(dstoreFiles.get(i).getKey()));
-				else
-					toStore.put(file, new ArrayList<>(ControllerServer.getDStorePort(dstoreFiles.get(i).getKey())));
-			}
-		}
-		
-		for (Map.Entry<Socket, String[]> dstore : dstoreFiles)
-		{
-			StringBuilder storeMsg = new StringBuilder();
-			int storeCount = 1;
-			
-			for (String file : dstore.getValue())
-			{
-				if (toStore.containsKey(file))
-				{
-					storeMsg.append(file).append(' ').append(toStore.get(file).size()).append(' ').append(
-							toStore.get(file).stream().map(Object::toString).collect(Collectors.joining(" "))).append(' ');
-					storeCount++;
-					
-					toStore.remove(file);
-				}
-			}
-			
-			StringBuilder removeMsg = new StringBuilder();
-			if (toRemove.containsKey(dstore.getKey()))
-				removeMsg.append(toRemove.get(dstore.getKey()).size()).append(' ').append(String.join(" ", toRemove.get(dstore.getKey())));
-			
-			if (storeMsg.length() == 0 && removeMsg.length() == 0)
-				continue;
-			
-			sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + " " + removeMsg, dstore.getKey());
-			
-			if (!receiveMessage(dstore.getKey()).equals(Protocol.REBALANCE_COMPLETE_TOKEN))
-				throw new IOException("Sadge");
-		}
 	}
 	
 	private void handleListRequest() throws IOException
