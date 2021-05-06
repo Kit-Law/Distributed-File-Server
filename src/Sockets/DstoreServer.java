@@ -13,7 +13,7 @@ public class DstoreServer extends Server
 {
 	private static String file_folder;
 	
-	private static MessageClient controller;
+	private static DstoreController controller;
 	
 	public DstoreServer(final int port, final int cport, final int timeout, final String file_folder)
 	{
@@ -26,8 +26,8 @@ public class DstoreServer extends Server
 			if (!Files.isDirectory(Paths.get(file_folder)))
 				Files.createDirectory(Paths.get(file_folder));
 			
-			controller = new MessageClient(cport);
-			controller.sendMessage(Protocol.JOIN_TOKEN, String.valueOf(port));
+			controller = new DstoreController(cport, port);
+			new Thread(controller).start();
 		}
 		catch (IOException e)
 		{

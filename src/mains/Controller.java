@@ -48,7 +48,7 @@ public class Controller extends MessageClient implements Runnable
 		// create a ServerSocketChannel to read the request
 		
 		String msg = receiveMessage();
-		System.out.println(msg);
+		System.out.println(msg);			//TODO: remove this
 		String[] operand = MessageSocket.getOperand(msg);
 		
 		switch (MessageSocket.getOpcode(msg))
@@ -119,7 +119,7 @@ public class Controller extends MessageClient implements Runnable
 		for (int i = dstoreFiles.size() - 1; i >= 0; i--)
 		{
 			ArrayList<String> buffer = new ArrayList<>();
-			int times = dstoreFiles.get(i).getValue().length;
+			int times = Math.min(filesToAlter.size(), dstoreFiles.get(i).getValue().length);
 			
 			for (int j = 0; j < times; j++)
 			{
@@ -144,6 +144,7 @@ public class Controller extends MessageClient implements Runnable
 			ArrayList<String> buffer = new ArrayList<>();
 			int times = max - dstoreFiles.get(i).getValue().length +
 					(toRemove.containsKey(dstoreFiles.get(i).getKey()) ? toRemove.get(dstoreFiles.get(i).getKey()).size() : 0);
+			if (times > filesToAlter.size()) times = filesToAlter.size();
 			
 			for (int j = 0; j < times; j++)
 			{
@@ -183,7 +184,11 @@ public class Controller extends MessageClient implements Runnable
 			}
 			
 			StringBuilder removeMsg = new StringBuilder();
-			removeMsg.append(toRemove.get(dstore.getKey()).size()).append(' ').append(String.join(" ", toRemove.get(dstore.getKey())));
+			if (toRemove.containsKey(dstore.getKey()))
+				removeMsg.append(toRemove.get(dstore.getKey()).size()).append(' ').append(String.join(" ", toRemove.get(dstore.getKey())));
+			
+			if (storeMsg.length() == 0 && removeMsg.length() == 0)
+				continue;
 			
 			sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + " " + removeMsg, dstore.getKey());
 			
@@ -200,13 +205,13 @@ public class Controller extends MessageClient implements Runnable
 	private void handleStoreRequest(final String file, final long filesize) throws IOException
 	{
 		ControllerServer.freeFile(file);
-		Stream<Integer> dstorePorts = ControllerServer.getRdstores();
+		Integer[] dstorePorts = ControllerServer.getRdstores();
 		
 		//Creates a new database entry
-		ControllerServer.newDatabaseEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, (Integer[]) dstorePorts.toArray()));
+		ControllerServer.newDatabaseEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, dstorePorts));
 		
 		//Send the ports to the client.
-		sendMessage(Protocol.STORE_TO_TOKEN, dstorePorts.map(Object::toString).collect(Collectors.joining(" ")));
+		sendMessage(Protocol.STORE_TO_TOKEN, Stream.of(dstorePorts).map(Object::toString).collect(Collectors.joining(" ")));
 		
 		while (!ControllerServer.isReplicatedRTimes(file))
 			try { Thread.sleep(100); }

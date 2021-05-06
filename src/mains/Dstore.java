@@ -34,7 +34,10 @@ public class Dstore extends MessageClient implements Runnable
 	{
 		try
 		{
-			handleMessage();
+			while (true)
+			{
+				handleMessage();
+			}
 		}
 		catch (Exception e) { e.printStackTrace(); }
 	}
@@ -50,25 +53,15 @@ public class Dstore extends MessageClient implements Runnable
 		
 		switch (MessageSocket.getOpcode(msg))
 		{
-			case Protocol.LIST_TOKEN:
-				handleListRequest();
-				break;
 			case Protocol.STORE_TOKEN:
 				handleStoreRequest(operand[0], Long.parseLong(operand[1]));
 				break;
 			case Protocol.LOAD_DATA_TOKEN:
 				handleLoadRequest(operand[0]);
 				break;
-			case Protocol.REMOVE_TOKEN:
-				handleRemoveRequest(operand[0]);
 		}
 		
 		client.close();
-	}
-	
-	private void handleListRequest() throws IOException
-	{
-		MessageSocket.sendMessage(Protocol.LIST_TOKEN, DstoreServer.list(), client);
 	}
 	
 	private void handleStoreRequest(final String filename, long filesize) throws IOException
@@ -83,12 +76,5 @@ public class Dstore extends MessageClient implements Runnable
 	private void handleLoadRequest(final String filename)
 	{
 		FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
-	}
-	
-	private void handleRemoveRequest(final String filename) throws IOException
-	{
-		Files.delete(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename));
-		
-		DstoreServer.messageController(Protocol.REMOVE_ACK_TOKEN, filename);
 	}
 }
