@@ -1,16 +1,13 @@
-package mains;
+package sockets.controller;
 
-import Constants.Protocol;
-import Sockets.ControllerServer;
-import Sockets.MessageClient;
-import Sockets.MessageSocket;
-import Sockets.RebalancingControllerServer;
+import constants.Protocol;
+import sockets.message.MessageClient;
+import sockets.message.MessageSocket;
 import database.MetaData;
 import database.State;
 
 import java.io.*;
 import java.net.Socket;
-import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 

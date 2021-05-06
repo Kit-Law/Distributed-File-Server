@@ -1,7 +1,8 @@
-package Sockets;
+package sockets.controller;
 
-import Constants.Protocol;
-import mains.MutableInt;
+import constants.Protocol;
+import sockets.message.MessageSocket;
+import helpers.MutableInt;
 
 import java.io.IOException;
 import java.net.Socket;

@@ -1,7 +1,6 @@
-package Sockets;
+package sockets.dstore;
 
-import Constants.Protocol;
-import mains.Dstore;
+import sockets.Server;
 
 import java.io.*;
 import java.net.Socket;

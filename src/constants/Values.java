@@ -1,4 +1,4 @@
-package Constants;
+package constants;
 
 /**
  * A class to hold all of the macros for static values.

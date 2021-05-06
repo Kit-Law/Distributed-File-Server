@@ -1,16 +1,14 @@
-package Sockets;
+package sockets.controller;
 
+import sockets.Server;
 import database.MetaData;
 import database.State;
-import mains.Controller;
-import mains.MutableInt;
+import helpers.MutableInt;
 
 import java.io.*;
 import java.net.Socket;
-import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ControllerServer extends Server
 {

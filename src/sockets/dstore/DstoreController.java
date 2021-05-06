@@ -1,6 +1,8 @@
-package Sockets;
+package sockets.dstore;
 
-import Constants.Protocol;
+import constants.Protocol;
+import sockets.message.MessageClient;
+import sockets.message.MessageSocket;
 
 import java.io.IOException;
 import java.nio.file.Files;

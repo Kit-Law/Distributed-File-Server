@@ -1,4 +1,4 @@
-package Sockets;
+package sockets.message;
 
 import java.io.*;
 import java.net.InetAddress;

@@ -1,16 +1,14 @@
-package mains;
-import Constants.Protocol;
-import Sockets.DstoreServer;
-import Sockets.MessageSocket;
-import Sockets.MessageClient;
-import Sockets.fileTransfer.FileReceiver;
-import Sockets.fileTransfer.FileSender;
+package sockets.dstore;
+import constants.Protocol;
+import sockets.message.MessageSocket;
+import sockets.message.MessageClient;
+import sockets.fileTransfer.FileReceiver;
+import sockets.fileTransfer.FileSender;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 
 public class Dstore extends MessageClient implements Runnable

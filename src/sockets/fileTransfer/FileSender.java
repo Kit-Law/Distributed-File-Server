@@ -1,6 +1,6 @@
-package Sockets.fileTransfer;
+package sockets.fileTransfer;
 
-import Constants.Values;
+import constants.Values;
 
 import java.net.InetAddress;
 import java.net.Socket;
