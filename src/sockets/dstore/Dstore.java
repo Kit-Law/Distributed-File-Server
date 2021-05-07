@@ -51,6 +51,9 @@ public class Dstore extends MessageClient implements Runnable
 			case Protocol.LOAD_DATA_TOKEN:
 				handleLoadRequest(operand[0]);
 				break;
+			default:
+				System.err.println("Malformed Message Received: " + msg);
+				break;
 		}
 		
 		client.close();
@@ -67,6 +70,10 @@ public class Dstore extends MessageClient implements Runnable
 	
 	private void handleLoadRequest(final String filename)
 	{
-		FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
+		try
+		{
+			FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
+		}
+		catch (IOException ignored) { }
 	}
 }

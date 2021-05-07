@@ -2,6 +2,8 @@ package sockets.fileTransfer;
 
 import constants.Values;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.channels.FileChannel;
@@ -19,7 +21,7 @@ public final class FileSender
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
-	public static void transfer(final Path filePath, final Socket client)
+	public static void transfer(final Path filePath, final Socket client) throws IOException
 	{
 		try
 		{
@@ -35,6 +37,6 @@ public final class FileSender
 			
 			channel.close();
 		}
-		catch (Exception e) { e.printStackTrace(); }
+		catch (IOException e) { throw e; }
 	}
 }

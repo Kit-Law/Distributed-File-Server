@@ -1,17 +1,17 @@
 package sockets.controller;
 
 import constants.Protocol;
+import exeptions.NotEnoughDstores;
 import logger.ControllerLogger;
-import logger.Logger;
 import sockets.message.MessageClient;
 import sockets.message.MessageSocket;
 import database.MetaData;
 import database.State;
 
 import java.io.*;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -34,35 +34,24 @@ public class Controller extends MessageClient implements Runnable
 	@Override
 	public void run()
 	{
-		try
+		while (true)
 		{
-			while (true)
+			try
 			{
 				handleMessage();
 			}
-		}
-		catch (SocketException e)
-		{
-			e.printStackTrace();
-		}
-		catch (NullPointerException e)
-		{
-			e.printStackTrace();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
+			catch (SocketException e) { e.printStackTrace(); }
+			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
+			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
+			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
+			catch (NullPointerException e) { e.printStackTrace(); }
+			catch (IOException e) { e.printStackTrace(); }
 		}
 	}
 	
 	protected void handleMessage() throws IOException
 	{
-		//Logger.info.log("Reading...");
-		// create a ServerSocketChannel to read the request
-		
 		String msg = receiveMessage();
-		//ControllerLogger.getInstance().messageReceived(getSocket(), msg);
-		//System.out.println(msg);			//TODO: remove this
 		String[] operand = MessageSocket.getOperand(msg);
 		
 		switch (MessageSocket.getOpcode(msg))
@@ -88,6 +77,9 @@ public class Controller extends MessageClient implements Runnable
 			case Protocol.REMOVE_ACK_TOKEN:
 				handleRemoveAck(operand[0]);
 				break;
+			default:
+				System.err.println("Malformed Message Received: " + msg);
+				break;
 		}
 	}
 	
@@ -97,16 +89,18 @@ public class Controller extends MessageClient implements Runnable
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), Integer.parseInt(port));
 		
 		RebalancingControllerServer.handleRebalance(getSocket());
-		//Logger.info.log("DStore: " + dstore + ", has been added.");
 	}
 	
-	private void handleListRequest() throws IOException
+	private void handleListRequest()
 	{
 		sendMessage(Protocol.LIST_TOKEN, ControllerServer.getFileList());
 	}
 	
-	private void handleStoreRequest(final String file, final long filesize) throws IOException
+	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, NotEnoughDstores
 	{
+		if (!ControllerServer.hasEnoughDstores())
+			throw new NotEnoughDstores();
+		
 		ControllerServer.freeFile(file);
 		Integer[] dstorePorts = ControllerServer.getRdstores();
 		
@@ -124,13 +118,16 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.setFileState(file, State.STORE_COMPLETE);
 	}
 	
-	private void handleStoreAck(String filename) throws IOException
+	private void handleStoreAck(String filename)
 	{
 		ControllerServer.addNewStoreAck(filename);
 	}
 	
-	private void handleLoadRequest(final String file) throws IOException
+	private void handleLoadRequest(final String file) throws NotEnoughDstores, FileNotFoundException
 	{
+		if (!ControllerServer.hasEnoughDstores())
+			throw new NotEnoughDstores();
+		
 		sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.selectDStore(file) + " " + ControllerServer.getFileSize(file));
 	}
 	

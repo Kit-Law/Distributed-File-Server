@@ -35,10 +35,6 @@ public class DstoreController extends MessageClient implements Runnable
 	
 	protected void handleMessage() throws IOException
 	{
-		//Logger.info.log("Reading...");
-		// create a ServerSocketChannel to read the request
-		//SocketChannel client = (SocketChannel) key.channel();
-		
 		String msg = receiveMessage();
 		String[] operand = MessageSocket.getOperand(msg);
 		
@@ -49,6 +45,10 @@ public class DstoreController extends MessageClient implements Runnable
 				break;
 			case Protocol.REMOVE_TOKEN:
 				handleRemoveRequest(operand[0]);
+				break;
+			default:
+				System.err.println("Malformed Message Received: " + msg);
+				break;
 		}
 	}
 	

@@ -9,8 +9,8 @@ import helpers.MutableInt;
 
 import java.io.*;
 import java.net.Socket;
+import java.nio.file.FileAlreadyExistsException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ControllerServer extends Server
 {
@@ -44,13 +44,13 @@ public class ControllerServer extends Server
 		new Thread(new Controller(client, in, out)).start();
 	}
 	
-	public static void freeFile(String filename) throws IOException
+	public static void freeFile(String filename) throws FileAlreadyExistsException
 	{
 		if (database.containsKey(filename))
 			if (database.get(filename).getState() == State.REMOVE_COMPLETE)
 				database.remove(filename);
 			else
-				throw new IOException("File already existed lol"); //TODO: Add this back when doing error handelling
+				throw new FileAlreadyExistsException(filename);
 	}
 	
 	public static void addDStore(int port, Socket dstore) { dstores.put(port, dstore); }
@@ -87,7 +87,13 @@ public class ControllerServer extends Server
 				.map((port) -> dstores.get(port)).toArray(Socket[]::new);
 	}
 	
-	public static int selectDStore(String filename) { return database.get(filename).getDstorePorts().get(0); }
+	public static int selectDStore(String filename) throws FileNotFoundException
+	{
+		if (!database.containsKey(filename))
+			throw new FileNotFoundException(filename);
+		
+		return database.get(filename).getDstorePorts().get(0);
+	}
 	
 	public static int getR() { return R; }
 	public static int getRebalance_period() { return rebalance_period; }
@@ -103,5 +109,6 @@ public class ControllerServer extends Server
 	public static long getFileSize(String filename) { return database.get(filename).getSize(); }
 	
 	public static Integer[] getRdstores() { return new ArrayList<>(dstores.keySet()).subList(0, R).toArray(Integer[]::new); }
-	//public static Integer[] getRdstores() { Collections.shuffle(new ArrayList<>(dstores.keySet())); return dstores.subList(0, R).stream().map(Map.Entry::getKey).toArray(Integer[]::new); }
+	
+	public static boolean hasEnoughDstores() { return dstores.size() >= R; }
 }
