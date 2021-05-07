@@ -15,28 +15,23 @@ public final class FileSender
 {
 	private SocketChannel client;
 	
-	public static void transfer(final Path filePath, final int port)
+	public static void transfer(final Path filePath, final int port) throws IOException
 	{
-		try { transfer(filePath, new Socket(InetAddress.getLoopbackAddress(), port)); }
-		catch (Exception e) { e.printStackTrace(); }
+		transfer(filePath, new Socket(InetAddress.getLoopbackAddress(), port));
 	}
 	
 	public static void transfer(final Path filePath, final Socket client) throws IOException
 	{
-		try
+		FileChannel channel = FileChannel.open(filePath, StandardOpenOption.READ);
+		
+		long position = 0L;
+		long size = channel.size();
+		
+		while (position < size)
 		{
-			FileChannel channel = FileChannel.open(filePath, StandardOpenOption.READ);
-			
-			long position = 0L;
-			long size = channel.size();
-			
-			while (position < size)
-			{
-				position += channel.transferTo(position, Values.TRANSFER_MAX_SIZE, client.getChannel());
-			}
-			
-			channel.close();
+			position += channel.transferTo(position, Values.TRANSFER_MAX_SIZE, client.getChannel());
 		}
-		catch (IOException e) { throw e; }
+		
+		channel.close();
 	}
 }

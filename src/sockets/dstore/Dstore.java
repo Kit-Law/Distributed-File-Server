@@ -1,6 +1,7 @@
 package sockets.dstore;
 import constants.Protocol;
 import logger.DstoreLogger;
+import sockets.controller.ControllerServer;
 import sockets.message.MessageSocket;
 import sockets.message.MessageClient;
 import sockets.fileTransfer.FileReceiver;
@@ -10,6 +11,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Paths;
 
 public class Dstore extends MessageClient implements Runnable
@@ -35,6 +37,7 @@ public class Dstore extends MessageClient implements Runnable
 		{
 			handleMessage();
 		}
+		catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
@@ -68,12 +71,8 @@ public class Dstore extends MessageClient implements Runnable
 		DstoreServer.messageController(Protocol.STORE_ACK_TOKEN, filename);
 	}
 	
-	private void handleLoadRequest(final String filename)
+	private void handleLoadRequest(final String filename) throws IOException
 	{
-		try
-		{
-			FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
-		}
-		catch (IOException ignored) { }
+		FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
 	}
 }

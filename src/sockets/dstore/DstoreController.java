@@ -6,7 +6,9 @@ import sockets.message.MessageSocket;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 
 public class DstoreController extends MessageClient implements Runnable
@@ -31,7 +33,8 @@ public class DstoreController extends MessageClient implements Runnable
 				handleMessage();
 			}
 		}
-		catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
+		catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
+		catch (NoSuchFileException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
@@ -61,7 +64,7 @@ public class DstoreController extends MessageClient implements Runnable
 	
 	private void handleRemoveRequest(final String filename) throws IOException
 	{
-		Files.delete(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename));
+		Files.delete(Paths.get(DstoreServer.getFile_folder() + "/" + filename));
 		
 		sendMessage(Protocol.REMOVE_ACK_TOKEN, filename);
 	}

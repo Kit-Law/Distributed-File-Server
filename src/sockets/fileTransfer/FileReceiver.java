@@ -11,17 +11,13 @@ import java.nio.file.StandardOpenOption;
 //TODO: This is stupid...
 public class FileReceiver
 {
-	public static void receive(final Socket client, final Path filePath, final long size)
+	public static void receive(final Socket client, final Path filePath, final long size) throws IOException
 	{
-		try
-		{
-			FileChannel channel = FileChannel.open(filePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
-			
-			transfer(client, channel, size);
-			
-			channel.close();
-		}
-		catch (IOException e) { e.printStackTrace(); }
+		FileChannel channel = FileChannel.open(filePath, StandardOpenOption.WRITE, StandardOpenOption.CREATE_NEW);
+		
+		transfer(client, channel, size);
+		
+		channel.close();
 	}
 	
 	private static void transfer(final Socket client, final FileChannel channel, final long bytes) throws IOException

@@ -40,11 +40,11 @@ public class Controller extends MessageClient implements Runnable
 			{
 				handleMessage();
 			}
-			catch (SocketException e) { e.printStackTrace(); }
+			//catch (SocketException e) { e.printStackTrace(); }
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
-			catch (NullPointerException e) { e.printStackTrace(); }
+			catch (NullPointerException e) { break; }
 			catch (IOException e) { e.printStackTrace(); }
 		}
 	}

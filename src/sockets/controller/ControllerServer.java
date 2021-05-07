@@ -16,6 +16,7 @@ public class ControllerServer extends Server
 {
 	private static int R;
 	private static int rebalance_period;
+	
 	private static HashMap<String, MetaData> database = new HashMap<>();
 	private static HashMap<String, MutableInt> storeAcks = new HashMap<>();
 	private static HashMap<String, MutableInt> removeAcks = new HashMap<>();
@@ -119,12 +120,12 @@ public class ControllerServer extends Server
 	public static int getRebalance_period() { return rebalance_period; }
 	public static String getFileList()
 	{
-		StringBuilder fileList = new StringBuilder();
+		ArrayList<String> fileList = new ArrayList<>();
 		
 		for (Map.Entry<String, MetaData> file : database.entrySet())
-			if (file.getValue().getState() == State.STORE_COMPLETE) fileList.append(file.getKey()).append(' ');
+			if (file.getValue().getState() == State.STORE_COMPLETE) fileList.add(file.getKey());
 		
-		return fileList.toString();
+		return String.join(" ",  fileList);
 	}
 	public static long getFileSize(String filename) { return database.get(filename).getSize(); }
 	
