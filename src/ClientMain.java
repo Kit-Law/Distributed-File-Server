@@ -37,7 +37,7 @@ public class ClientMain {
 			client.connect();
 			Random random = new Random(System.currentTimeMillis() * System.nanoTime());
 			
-			/*File fileList[] = uploadFolder.listFiles();
+			File fileList[] = uploadFolder.listFiles();
 			for (int i=0; i<fileList.length/2; i++) {
 				File fileToStore = fileList[random.nextInt(fileList.length)];
 				try {					
@@ -46,7 +46,7 @@ public class ClientMain {
 					System.out.println("Error storing file " + fileToStore);
 					e.printStackTrace();
 				}
-			}*/
+			}
 			
 			String list[] = null;
 			try { list = list(client); } catch(IOException e) { e.printStackTrace(); }

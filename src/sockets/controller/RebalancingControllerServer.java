@@ -26,6 +26,8 @@ public class RebalancingControllerServer
 		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, toRemove, maxFiles);
 		
 		messageDStores(dstoreFiles, toRemove, toStore);
+	
+		updateDatabase(dstoreFiles, toRemove, toStore);
 	}
 	
 	private static void getFileData(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, HashMap<String, MutableInt> fileCounts) throws IOException
@@ -157,6 +159,30 @@ public class RebalancingControllerServer
 			
 			if (!MessageSocket.receiveMessage(dstore.getKey()).equals(Protocol.REBALANCE_COMPLETE_TOKEN))
 				throw new IOException("Sadge");
+		}
+	}
+	
+	private static void updateDatabase(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles,
+									   HashMap<Socket, ArrayList<String>> toRemove,
+									   HashMap<String, ArrayList<Integer>> toStore) throws IOException
+	{
+		for (Map.Entry<Socket, String[]> dstore : dstoreFiles)
+		{
+			int port = ControllerServer.getDStorePort(dstore.getKey());
+			
+			for (String file : dstore.getValue())
+				ControllerServer.validateDatabasePort(file, port);
+		}
+		
+		for (Map.Entry<String, ArrayList<Integer>> entry : toStore.entrySet())
+			ControllerServer.addDatabasePorts(entry.getKey(), entry.getValue());
+		
+		for (Map.Entry<Socket, ArrayList<String>> entry : toRemove.entrySet())
+		{
+			int port = ControllerServer.getDStorePort(entry.getKey());
+			
+			for (String file : entry.getValue())
+				ControllerServer.removeDatabasePort(file, port);
 		}
 	}
 }

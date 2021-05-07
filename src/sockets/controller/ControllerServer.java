@@ -16,6 +16,7 @@ public class ControllerServer extends Server
 	private static int rebalance_period;
 	private static HashMap<String, MetaData> database = new HashMap<>();
 	private static HashMap<String, MutableInt> storeAcks = new HashMap<>();
+	private static HashMap<String, MutableInt> removeAcks = new HashMap<>();
 	private static HashMap<Integer, Socket> dstores = new HashMap<>();
 	
 	public ControllerServer(final int cport, final int R, final int timeout, final int rebalance_period)
@@ -52,8 +53,18 @@ public class ControllerServer extends Server
 	public static void addDStore(int port, Socket dstore) { dstores.put(port, dstore); }
 	
 	public static void newDatabaseEntry(String filename, MetaData metaData) { database.put(filename, metaData); }
-	public static void addNewDatabasePort(String filename) { MutableInt.incrementCount(storeAcks, filename); }
+	public static void addDatabasePorts(String filename, ArrayList<Integer> ports) { database.get(filename).addPorts(ports); }
+	public static void removeDatabasePort(String filename, int port) { database.get(filename).removePort(port); }
+	public static void validateDatabasePort(String filename, int port)
+	{
+		if (database.containsKey(filename)) database.get(filename).validatePort(port);
+		else database.put(filename, new MetaData(State.STORE_COMPLETE, 0, new Integer[]{port})); //TODO: GET SIZE?????
+	}
+	
+	public static void addNewStoreAck(String filename) { MutableInt.incrementCount(storeAcks, filename); }
+	public static void addNewRemoveAck(String filename) { MutableInt.incrementCount(removeAcks, filename); }
 	public static boolean isReplicatedRTimes(String filename) { return storeAcks.containsKey(filename) && storeAcks.get(filename).get() == R; }
+	public static boolean isRemoved(String filename) { return removeAcks.containsKey(filename) && removeAcks.get(filename).get() == database.get(filename).getDstorePorts().size(); }
 	public static void setFileState(String filename, State state) { database.get(filename).setState(state); }
 	
 	public static int getDStorePort(Socket dstore) throws IOException
@@ -69,18 +80,23 @@ public class ControllerServer extends Server
 	}
 	public static Socket[] getDStores(String filename)
 	{
-		return Arrays.stream(database.get(filename).getDstorePorts())
+		return database.get(filename).getDstorePorts().stream()
 				.map((port) -> dstores.get(port)).toArray(Socket[]::new);
 	}
 	
-	public static int selectDStore(String filename) { return database.get(filename).getDstorePorts()[0]; }
-	
-	//TODO: Remove this after testing.
-	public static void setR(int r) { R = r; }
+	public static int selectDStore(String filename) { return database.get(filename).getDstorePorts().get(0); }
 	
 	public static int getR() { return R; }
 	public static int getRebalance_period() { return rebalance_period; }
-	public static String getFileList() { return database.keySet().stream().map(Object::toString).collect(Collectors.joining(" ")); }
+	public static String getFileList()
+	{
+		StringBuilder fileList = new StringBuilder();
+		
+		for (Map.Entry<String, MetaData> file : database.entrySet())
+			if (file.getValue().getState() == State.STORE_COMPLETE) fileList.append(file.getKey()).append(' ');
+		
+		return fileList.toString();
+	}
 	public static long getFileSize(String filename) { return database.get(filename).getSize(); }
 	
 	public static Integer[] getRdstores() { return new ArrayList<>(dstores.keySet()).subList(0, R).toArray(Integer[]::new); }

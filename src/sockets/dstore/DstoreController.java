@@ -61,6 +61,6 @@ public class DstoreController extends MessageClient implements Runnable
 	{
 		Files.delete(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename));
 		
-		DstoreServer.messageController(Protocol.REMOVE_ACK_TOKEN, filename);
+		sendMessage(Protocol.REMOVE_ACK_TOKEN, filename);
 	}
 }

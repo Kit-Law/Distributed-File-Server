@@ -7,7 +7,9 @@ import database.MetaData;
 import database.State;
 
 import java.io.*;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -37,7 +39,18 @@ public class Controller extends MessageClient implements Runnable
 				handleMessage();
 			}
 		}
-		catch (Exception e) { e.printStackTrace(); }
+		catch (SocketException e)
+		{
+			e.printStackTrace();
+		}
+		catch (NullPointerException e)
+		{
+			e.printStackTrace();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	protected void handleMessage() throws IOException
@@ -68,6 +81,9 @@ public class Controller extends MessageClient implements Runnable
 				break;
 			case Protocol.REMOVE_TOKEN:
 				handleRemoveRequest(operand[0]);
+				break;
+			case Protocol.REMOVE_ACK_TOKEN:
+				handleRemoveAck(operand[0]);
 				break;
 		}
 	}
@@ -106,7 +122,7 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleStoreAck(String filename) throws IOException
 	{
-		ControllerServer.addNewDatabasePort(filename);
+		ControllerServer.addNewStoreAck(filename);
 	}
 	
 	private void handleLoadRequest(final String file) throws IOException
@@ -124,15 +140,24 @@ public class Controller extends MessageClient implements Runnable
 			{
 				MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore);
 				
-				if (!MessageSocket.getOpcode(MessageSocket.receiveMessage(dstore)).equals(Protocol.REMOVE_ACK_TOKEN))
-					throw new IOException("Sadge");
+				//if (!MessageSocket.getOpcode(MessageSocket.receiveMessage(dstore)).equals(Protocol.REMOVE_ACK_TOKEN))
+				//	throw new IOException("Sadge");
 			}
 			catch (Exception e) { e.printStackTrace(); }
 		}
+		
+		while (!ControllerServer.isRemoved(file))
+			try { Thread.sleep(100); }
+			catch (Exception e) { e.printStackTrace(); }
 		
 		//TODO: change the way that a file si tested to be there
 		ControllerServer.setFileState(file, State.REMOVE_COMPLETE);
 		
 		sendMessage(Protocol.REMOVE_COMPLETE_TOKEN, "");
+	}
+	
+	private void handleRemoveAck(String filename)
+	{
+		ControllerServer.addNewRemoveAck(filename);
 	}
 }
