@@ -91,12 +91,15 @@ public class Controller extends MessageClient implements Runnable
 		RebalancingControllerServer.handleRebalance(getSocket());
 	}
 	
-	private void handleListRequest()
+	private void handleListRequest() throws NotEnoughDstores
 	{
+		if (!ControllerServer.hasEnoughDstores())
+			throw new NotEnoughDstores();
+		
 		sendMessage(Protocol.LIST_TOKEN, ControllerServer.getFileList());
 	}
 	
-	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, NotEnoughDstores
+	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores
 	{
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
@@ -131,8 +134,11 @@ public class Controller extends MessageClient implements Runnable
 		sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.selectDStore(file) + " " + ControllerServer.getFileSize(file));
 	}
 	
-	private void handleRemoveRequest(final String file)
+	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException
 	{
+		if (!ControllerServer.hasEnoughDstores())
+			throw new NotEnoughDstores();
+		
 		ControllerServer.setFileState(file, State.REMOVE_IN_PROGRESS);
 		
 		for (Socket dstore : ControllerServer.getDStores(file))

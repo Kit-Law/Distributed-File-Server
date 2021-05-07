@@ -64,11 +64,31 @@ public class ControllerServer extends Server
 		else database.put(filename, new MetaData(State.STORE_COMPLETE, 0, new Integer[]{port})); //TODO: GET SIZE?????
 	}
 	
-	public static void addNewStoreAck(String filename) { MutableInt.incrementCount(storeAcks, filename); }
-	public static void addNewRemoveAck(String filename) { MutableInt.incrementCount(removeAcks, filename); }
-	public static boolean isReplicatedRTimes(String filename) { return storeAcks.containsKey(filename) && storeAcks.get(filename).get() == R; }
-	public static boolean isRemoved(String filename) { return removeAcks.containsKey(filename) && removeAcks.get(filename).get() == database.get(filename).getDstorePorts().size(); }
-	public static void setFileState(String filename, State state) { database.get(filename).setState(state); }
+	public static void addNewStoreAck(String filename)
+	{
+		MutableInt.incrementCount(storeAcks, filename);
+	}
+	public static void addNewRemoveAck(String filename)
+	{
+		MutableInt.incrementCount(removeAcks, filename);
+	}
+	public static boolean isReplicatedRTimes(String filename)
+	{
+		return storeAcks.containsKey(filename) &&
+				storeAcks.get(filename).get() == R;
+	}
+	public static boolean isRemoved(String filename)
+	{
+		return removeAcks.containsKey(filename) &&
+				removeAcks.get(filename).get() == database.get(filename).getDstorePorts().size();
+	}
+	public static void setFileState(String filename, State state) throws FileNotFoundException
+	{
+		if (!database.containsKey(filename))
+			throw new FileNotFoundException(filename);
+		
+		database.get(filename).setState(state);
+	}
 	
 	public static int getDStorePort(Socket dstore) throws IOException
 	{

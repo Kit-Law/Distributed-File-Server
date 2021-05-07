@@ -4,6 +4,7 @@ import constants.Protocol;
 import sockets.message.MessageClient;
 import sockets.message.MessageSocket;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -30,6 +31,7 @@ public class DstoreController extends MessageClient implements Runnable
 				handleMessage();
 			}
 		}
+		catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
