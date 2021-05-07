@@ -1,5 +1,7 @@
 package sockets.dstore;
 
+import logger.DstoreLogger;
+import logger.Logger;
 import sockets.Server;
 
 import java.io.*;
@@ -22,6 +24,8 @@ public class DstoreServer extends Server
 		
 		try
 		{
+			DstoreLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL, port);
+			
 			if (!Files.isDirectory(Paths.get(file_folder)))
 				Files.createDirectory(Paths.get(file_folder));
 			

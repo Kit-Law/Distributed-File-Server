@@ -1,5 +1,7 @@
 package sockets.controller;
 
+import logger.ControllerLogger;
+import logger.Logger;
 import sockets.Server;
 import database.MetaData;
 import database.State;
@@ -25,7 +27,8 @@ public class ControllerServer extends Server
 		ControllerServer.R = R;
 		ControllerServer.rebalance_period = rebalance_period;
 		
-		//logger.Logger.setLogFile(this);
+		try { ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL); }
+		catch (IOException e) { e.printStackTrace(); }
 		
 		launchServer();
 	}
@@ -47,7 +50,7 @@ public class ControllerServer extends Server
 			if (database.get(filename).getState() == State.REMOVE_COMPLETE)
 				database.remove(filename);
 			else
-				database.remove(filename); //throw new IOException("File already existed lol"); //TODO: Add this back when doing error handelling
+				throw new IOException("File already existed lol"); //TODO: Add this back when doing error handelling
 	}
 	
 	public static void addDStore(int port, Socket dstore) { dstores.put(port, dstore); }

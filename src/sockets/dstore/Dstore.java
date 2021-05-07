@@ -1,5 +1,6 @@
 package sockets.dstore;
 import constants.Protocol;
+import logger.DstoreLogger;
 import sockets.message.MessageSocket;
 import sockets.message.MessageClient;
 import sockets.fileTransfer.FileReceiver;
@@ -23,7 +24,7 @@ public class Dstore extends MessageClient implements Runnable
 	
 	public Dstore(Socket client, DataInputStream in, DataOutputStream out)
 	{
-		super(in, out);
+		super(client, in, out);
 		this.client = client;
 	}
 	
@@ -32,20 +33,13 @@ public class Dstore extends MessageClient implements Runnable
 	{
 		try
 		{
-			while (true)
-			{
-				handleMessage();
-			}
+			handleMessage();
 		}
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	
 	protected void handleMessage() throws IOException
 	{
-		//Logger.info.log("Reading...");
-		// create a ServerSocketChannel to read the request
-		//SocketChannel client = (SocketChannel) key.channel();
-		
 		String msg = receiveMessage();
 		String[] operand = MessageSocket.getOperand(msg);
 		
@@ -64,7 +58,7 @@ public class Dstore extends MessageClient implements Runnable
 	
 	private void handleStoreRequest(final String filename, long filesize) throws IOException
 	{
-		MessageSocket.sendMessage(Protocol.ACK_TOKEN, "", client);
+		MessageSocket.sendMessage(Protocol.ACK_TOKEN, "", client, DstoreLogger.getInstance(), getSocket());
 		
 		FileReceiver.receive(client, Paths.get(DstoreServer.getFile_folder() + "/" + filename), filesize);
 		

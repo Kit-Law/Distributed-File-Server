@@ -1,6 +1,8 @@
 package sockets.controller;
 
 import constants.Protocol;
+import logger.ControllerLogger;
+import logger.Logger;
 import sockets.message.MessageClient;
 import sockets.message.MessageSocket;
 import database.MetaData;
@@ -25,7 +27,7 @@ public class Controller extends MessageClient implements Runnable
 	
 	public Controller(Socket client, DataInputStream in, DataOutputStream out)
 	{
-		super(in, out);
+		super(client, in, out);
 		this.client = client;
 	}
 	
@@ -59,7 +61,8 @@ public class Controller extends MessageClient implements Runnable
 		// create a ServerSocketChannel to read the request
 		
 		String msg = receiveMessage();
-		System.out.println(msg);			//TODO: remove this
+		//ControllerLogger.getInstance().messageReceived(getSocket(), msg);
+		//System.out.println(msg);			//TODO: remove this
 		String[] operand = MessageSocket.getOperand(msg);
 		
 		switch (MessageSocket.getOpcode(msg))
@@ -91,8 +94,9 @@ public class Controller extends MessageClient implements Runnable
 	private void handleDstoreConnect(String port) throws IOException
 	{
 		ControllerServer.addDStore(Integer.parseInt(port), client);
+		ControllerLogger.getInstance().dstoreJoined(getSocket(), Integer.parseInt(port));
 		
-		RebalancingControllerServer.handleRebalance();
+		RebalancingControllerServer.handleRebalance(getSocket());
 		//Logger.info.log("DStore: " + dstore + ", has been added.");
 	}
 	
@@ -138,10 +142,7 @@ public class Controller extends MessageClient implements Runnable
 		{
 			try
 			{
-				MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore);
-				
-				//if (!MessageSocket.getOpcode(MessageSocket.receiveMessage(dstore)).equals(Protocol.REMOVE_ACK_TOKEN))
-				//	throw new IOException("Sadge");
+				MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore, ControllerLogger.getInstance(), getSocket());
 			}
 			catch (Exception e) { e.printStackTrace(); }
 		}
