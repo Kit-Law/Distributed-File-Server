@@ -1,6 +1,6 @@
 package helpers;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class MutableInt
 {
@@ -12,7 +12,7 @@ public class MutableInt
 	
 	public MutableInt(int value) { this.value = value; }
 	
-	public static <T> void incrementCount(HashMap<T, MutableInt> counter, T key)
+	public static <T> void incrementCount(ConcurrentHashMap<T, MutableInt> counter, T key)
 	{
 		MutableInt count = counter.get(key);
 		if (count == null)

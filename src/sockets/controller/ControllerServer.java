@@ -11,22 +11,25 @@ import java.io.*;
 import java.net.Socket;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ControllerServer extends Server
 {
 	private static int R;
 	private static int rebalance_period;
+	public static int timeout;
 	
-	private static HashMap<String, MetaData> database = new HashMap<>();
-	private static HashMap<String, MutableInt> storeAcks = new HashMap<>();
-	private static HashMap<String, MutableInt> removeAcks = new HashMap<>();
-	private static HashMap<Integer, Socket> dstores = new HashMap<>();
+	private static ConcurrentHashMap<String, MetaData> database = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, MutableInt> storeAcks = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<String, MutableInt> removeAcks = new ConcurrentHashMap<>();
+	private static ConcurrentHashMap<Integer, Socket> dstores = new ConcurrentHashMap<>();
 	
 	public ControllerServer(final int cport, final int R, final int timeout, final int rebalance_period)
 	{
 		super(cport, timeout);
 		ControllerServer.R = R;
 		ControllerServer.rebalance_period = rebalance_period;
+		ControllerServer.timeout = timeout;
 		
 		try { ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL); }
 		catch (IOException e) { e.printStackTrace(); }

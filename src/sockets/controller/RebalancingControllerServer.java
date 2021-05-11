@@ -8,6 +8,7 @@ import helpers.MutableInt;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class RebalancingControllerServer
@@ -15,7 +16,7 @@ public class RebalancingControllerServer
 	public static void handleRebalance(Socket controller) throws IOException
 	{
 		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
-		HashMap<String, MutableInt> fileCounts = new HashMap<>();
+		ConcurrentHashMap<String, MutableInt> fileCounts = new ConcurrentHashMap<>();
 		
 		getFileData(dstoreFiles, fileCounts, controller);
 		
@@ -31,7 +32,7 @@ public class RebalancingControllerServer
 		updateDatabase(dstoreFiles, toRemove, toStore);
 	}
 	
-	private static void getFileData(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, HashMap<String, MutableInt> fileCounts, Socket controller) throws IOException
+	private static void getFileData(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, ConcurrentHashMap<String, MutableInt> fileCounts, Socket controller) throws IOException
 	{
 		for (Socket dstore : ControllerServer.getDStores())
 		{
@@ -49,7 +50,7 @@ public class RebalancingControllerServer
 		}
 	}
 	
-	private static ArrayList<Map.Entry<String, MutableInt>> calFilesToAlter(HashMap<String, MutableInt> fileCounts)
+	private static ArrayList<Map.Entry<String, MutableInt>> calFilesToAlter(ConcurrentHashMap<String, MutableInt> fileCounts)
 	{
 		ArrayList<Map.Entry<String, MutableInt>> filesToAlter = new ArrayList<>();
 		

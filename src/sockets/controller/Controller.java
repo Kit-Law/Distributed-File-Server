@@ -88,7 +88,7 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.addDStore(Integer.parseInt(port), client);
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), Integer.parseInt(port));
 		
-		RebalancingControllerServer.handleRebalance(getSocket());
+		//RebalancingControllerServer.handleRebalance(getSocket());
 	}
 	
 	private void handleListRequest() throws NotEnoughDstores
@@ -114,7 +114,7 @@ public class Controller extends MessageClient implements Runnable
 		sendMessage(Protocol.STORE_TO_TOKEN, Stream.of(dstorePorts).map(Object::toString).collect(Collectors.joining(" ")));
 		
 		while (!ControllerServer.isReplicatedRTimes(file))
-			try { Thread.sleep(100); }
+			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 		
 		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
@@ -151,7 +151,7 @@ public class Controller extends MessageClient implements Runnable
 		}
 		
 		while (!ControllerServer.isRemoved(file))
-			try { Thread.sleep(100); }
+			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 		
 		//TODO: change the way that a file si tested to be there
