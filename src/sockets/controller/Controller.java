@@ -40,11 +40,10 @@ public class Controller extends MessageClient implements Runnable
 			{
 				handleMessage();
 			}
-			//catch (SocketException e) { e.printStackTrace(); }
+			catch (SocketException e) { e.printStackTrace(); } //TODO: Make this update the dstore hashmap and database
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
-			catch (SocketException e) {  }
 			catch (NullPointerException e) { break; }
 			catch (IOException e) { e.printStackTrace(); }
 		}
@@ -120,6 +119,7 @@ public class Controller extends MessageClient implements Runnable
 		
 		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
 		ControllerServer.setFileState(file, State.STORE_COMPLETE);
+		ControllerServer.clearStoreACKS(file);
 	}
 	
 	private void handleStoreAck(String filename)
@@ -155,10 +155,9 @@ public class Controller extends MessageClient implements Runnable
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 		
-		//TODO: change the way that a file si tested to be there
-		ControllerServer.setFileState(file, State.REMOVE_COMPLETE);
-		
 		sendMessage(Protocol.REMOVE_COMPLETE_TOKEN, "");
+		ControllerServer.setFileState(file, State.REMOVE_COMPLETE);
+		ControllerServer.clearRemoveACKS(file);
 	}
 	
 	private void handleRemoveAck(String filename)

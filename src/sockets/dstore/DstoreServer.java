@@ -9,6 +9,7 @@ import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 public class DstoreServer extends Server
 {
@@ -28,6 +29,10 @@ public class DstoreServer extends Server
 			
 			if (!Files.isDirectory(Paths.get(file_folder)))
 				Files.createDirectory(Paths.get(file_folder));
+			else
+			{
+				//Stream.of(Objects.requireNonNull(new File(file_folder).listFiles())).map(File::delete); //TODO: Add this back
+			}
 			
 			controller = new DstoreController(cport, port);
 			new Thread(controller).start();

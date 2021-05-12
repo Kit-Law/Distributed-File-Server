@@ -146,4 +146,7 @@ public class ControllerServer extends Server
 		catch (InterruptedException e) { e.printStackTrace(); } }));
 	}
 	public static void resume() { threads.forEach(Thread::notify); }
+	
+	public static void clearStoreACKS(String file) { storeAcks.remove(file); }
+	public static void clearRemoveACKS(String file) { removeAcks.remove(file); }
 }
