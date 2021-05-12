@@ -136,7 +136,21 @@ public class ControllerServer extends Server
 	}
 	public static long getFileSize(String filename) { return database.get(filename).getSize(); }
 	
-	public static Integer[] getRdstores() { return new ArrayList<>(dstores.keySet()).subList(0, R).toArray(Integer[]::new); }
+	public static Integer[] getRdstores()
+	{
+		HashMap<Integer, MutableInt> dstoreSize = new HashMap<>();
+		
+		for (Map.Entry<Integer, Socket> dstore : dstores.entrySet())
+			dstoreSize.put(dstore.getKey(), new MutableInt(0));
+		
+		for (Map.Entry<String, MetaData> file : database.entrySet())
+			file.getValue().getDstorePorts().forEach(port -> dstoreSize.get(port).increment());
+		
+		ArrayList<Map.Entry<Integer, MutableInt>> sortedDStores = new ArrayList<>(dstoreSize.entrySet());
+		sortedDStores.sort(Map.Entry.comparingByValue());
+		
+		return sortedDStores.subList(0, R).stream().map(Map.Entry::getKey).toArray(Integer[]::new);
+	}
 	
 	public static boolean hasEnoughDstores() { return dstores.size() >= R; }
 	

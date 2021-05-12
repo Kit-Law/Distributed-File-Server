@@ -2,7 +2,7 @@ package helpers;
 
 import java.util.concurrent.ConcurrentHashMap;
 
-public class MutableInt
+public class MutableInt implements Comparable<MutableInt>
 {
 	int value;
 	
@@ -19,5 +19,11 @@ public class MutableInt
 			counter.put(key, new MutableInt(1));
 		else
 			count.increment();
+	}
+	
+	@Override
+	public int compareTo(MutableInt o)
+	{
+		return Integer.compare(value, o.get());
 	}
 }
