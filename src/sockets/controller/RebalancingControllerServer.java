@@ -13,12 +13,12 @@ import java.util.stream.Collectors;
 
 public class RebalancingControllerServer
 {
-	public static void handleRebalance(Socket controller) throws IOException
+	public static void handleRebalance() throws IOException
 	{
 		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
 		ConcurrentHashMap<String, MutableInt> fileCounts = new ConcurrentHashMap<>();
 		
-		getFileData(dstoreFiles, fileCounts, controller);
+		getFileData(dstoreFiles, fileCounts);
 		
 		int maxFiles = (int) Math.ceil(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
 		int minFiles = (int) Math.floor(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
@@ -28,18 +28,18 @@ public class RebalancingControllerServer
 		HashMap<Socket, ArrayList<String>> toRemove = calFilesToRemove(dstoreFiles, filesToAlter, minFiles);
 		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, toRemove, maxFiles);
 		
-		messageDStores(dstoreFiles, toRemove, toStore, controller);
+		messageDStores(dstoreFiles, toRemove, toStore);
 	
 		updateDatabase(dstoreFiles, toRemove, toStore);
 	}
 	
-	private static void getFileData(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, ConcurrentHashMap<String, MutableInt> fileCounts, Socket controller) throws IOException
+	private static void getFileData(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, ConcurrentHashMap<String, MutableInt> fileCounts) throws IOException
 	{
 		for (Socket dstore : ControllerServer.getDStores())
 		{
-			MessageSocket.sendMessage(Protocol.LIST_TOKEN, "", dstore, ControllerLogger.getInstance(), controller);
+			MessageSocket.sendMessage(Protocol.LIST_TOKEN, "", dstore, ControllerLogger.getInstance(), dstore);
 			
-			String msg = MessageSocket.receiveMessage(dstore, ControllerLogger.getInstance(), controller);
+			String msg = MessageSocket.receiveMessage(dstore, ControllerLogger.getInstance(), dstore);
 			
 			if (!MessageSocket.getOpcode(msg).equals(Protocol.LIST_TOKEN))
 				throw new IOException("Wrong Opcode received.");
@@ -149,8 +149,7 @@ public class RebalancingControllerServer
 	
 	private static void messageDStores(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles,
 									   HashMap<Socket, ArrayList<String>> toRemove,
-									   HashMap<String, ArrayList<Integer>> toStore,
-									   Socket controller) throws IOException
+									   HashMap<String, ArrayList<Integer>> toStore) throws IOException
 	{
 		for (Map.Entry<Socket, String[]> dstore : dstoreFiles)
 		{
@@ -180,9 +179,9 @@ public class RebalancingControllerServer
 			if (storeCount == 0 && removeCount == 0)
 				continue;
 			
-			MessageSocket.sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + removeCount + " " + removeMsg, dstore.getKey(), ControllerLogger.getInstance(), controller);
+			MessageSocket.sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + removeCount + " " + removeMsg, dstore.getKey(), ControllerLogger.getInstance(), dstore.getKey());
 			
-			if (!MessageSocket.receiveMessage(dstore.getKey(), ControllerLogger.getInstance(), controller).equals(Protocol.REBALANCE_COMPLETE_TOKEN + " "))
+			if (!MessageSocket.receiveMessage(dstore.getKey(), ControllerLogger.getInstance(), dstore.getKey()).equals(Protocol.REBALANCE_COMPLETE_TOKEN + " "))
 				throw new IOException("Sadge");
 		}
 	}

@@ -8,6 +8,8 @@ import java.nio.channels.*;
 
 public abstract class Server
 {
+	protected ServerSocket serverSocket;
+	
 	protected final int port;
 	protected final int timeout;
 	
@@ -22,7 +24,7 @@ public abstract class Server
 		try
 		{
 			ServerSocketChannel socket = ServerSocketChannel.open();
-			ServerSocket serverSocket = socket.socket();
+			serverSocket = socket.socket();
 			serverSocket.bind(new InetSocketAddress(port));
 			socket.configureBlocking(true);
 			

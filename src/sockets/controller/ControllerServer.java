@@ -16,8 +16,9 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ControllerServer extends Server
 {
 	private static int R;
-	private static int rebalance_period;
 	public static int timeout;
+	
+	private static ArrayList<Thread> threads = new ArrayList<>();
 	
 	private static ConcurrentHashMap<String, MetaData> database = new ConcurrentHashMap<>();
 	private static ConcurrentHashMap<String, MutableInt> storeAcks = new ConcurrentHashMap<>();
@@ -28,8 +29,9 @@ public class ControllerServer extends Server
 	{
 		super(cport, timeout);
 		ControllerServer.R = R;
-		ControllerServer.rebalance_period = rebalance_period;
 		ControllerServer.timeout = timeout;
+		
+		new Thread(new RebalanceController(rebalance_period)).start();
 		
 		try { ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL); }
 		catch (IOException e) { e.printStackTrace(); }
@@ -45,7 +47,10 @@ public class ControllerServer extends Server
 		DataOutputStream out = new DataOutputStream(client.getOutputStream());
 		
 		// create a new thread object
-		new Thread(new Controller(client, in, out)).start();
+		Thread controller = new Thread(new Controller(client, in, out));
+		controller.start();
+		
+		threads.add(controller);
 	}
 	
 	public static void freeFile(String filename) throws FileAlreadyExistsException
@@ -120,7 +125,6 @@ public class ControllerServer extends Server
 	}
 	
 	public static int getR() { return R; }
-	public static int getRebalance_period() { return rebalance_period; }
 	public static String getFileList()
 	{
 		ArrayList<String> fileList = new ArrayList<>();
@@ -135,4 +139,11 @@ public class ControllerServer extends Server
 	public static Integer[] getRdstores() { return new ArrayList<>(dstores.keySet()).subList(0, R).toArray(Integer[]::new); }
 	
 	public static boolean hasEnoughDstores() { return dstores.size() >= R; }
+	
+	public static void pause() { threads.forEach((thread ->
+	{
+		try { thread.wait(); }
+		catch (InterruptedException e) { e.printStackTrace(); } }));
+	}
+	public static void resume() { threads.forEach(Thread::notify); }
 }

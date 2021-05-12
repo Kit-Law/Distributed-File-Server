@@ -89,7 +89,7 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.addDStore(Integer.parseInt(port), client);
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), Integer.parseInt(port));
 		
-		RebalancingControllerServer.handleRebalance(getSocket());
+		RebalancingControllerServer.handleRebalance();
 	}
 	
 	private void handleListRequest() throws NotEnoughDstores
