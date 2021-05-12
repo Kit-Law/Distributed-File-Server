@@ -40,7 +40,7 @@ public class Controller extends MessageClient implements Runnable
 			{
 				handleMessage();
 			}
-			catch (SocketException e) { e.printStackTrace(); } //TODO: Make this update the dstore hashmap and database
+			catch (SocketException e) { return; } //TODO: Make this update the dstore hashmap and database
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
@@ -93,6 +93,9 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleListRequest() throws NotEnoughDstores
 	{
+		if (ControllerServer.isDstore(client))
+			return;
+		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		

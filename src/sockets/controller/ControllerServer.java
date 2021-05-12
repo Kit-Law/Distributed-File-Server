@@ -163,4 +163,6 @@ public class ControllerServer extends Server
 	
 	public static void clearStoreACKS(String file) { storeAcks.remove(file); }
 	public static void clearRemoveACKS(String file) { removeAcks.remove(file); }
+	
+	public static boolean isDstore(Socket client) { return dstores.containsValue(client); }
 }
