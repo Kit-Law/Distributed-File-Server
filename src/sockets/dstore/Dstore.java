@@ -1,7 +1,6 @@
 package sockets.dstore;
 import constants.Protocol;
 import logger.DstoreLogger;
-import sockets.controller.ControllerServer;
 import sockets.message.MessageSocket;
 import sockets.message.MessageClient;
 import sockets.fileTransfer.FileReceiver;
@@ -54,6 +53,9 @@ public class Dstore extends MessageClient implements Runnable
 			case Protocol.LOAD_DATA_TOKEN:
 				handleLoadRequest(operand[0]);
 				break;
+			case Protocol.REBALANCE_STORE_TOKEN:
+				handleRebalanceStore(operand[0], Long.parseLong(operand[1]));
+				break;
 			default:
 				System.err.println("Malformed Message Received: " + msg);
 				break;
@@ -74,5 +76,12 @@ public class Dstore extends MessageClient implements Runnable
 	private void handleLoadRequest(final String filename) throws IOException
 	{
 		FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
+	}
+	
+	private void handleRebalanceStore(String filename, long filesize) throws IOException
+	{
+		MessageSocket.sendMessage(Protocol.ACK_TOKEN, "", client, DstoreLogger.getInstance(), getSocket());
+		
+		FileReceiver.receive(client, Paths.get(DstoreServer.getFile_folder() + "/" + filename), filesize);
 	}
 }

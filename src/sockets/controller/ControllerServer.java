@@ -101,9 +101,9 @@ public class ControllerServer extends Server
 			
 		throw new IOException("Socket not present");
 	}
-	public static Socket[] getDStores()
+	public static Collection<Socket> getDStores()
 	{
-		return dstores.values().toArray(new Socket[0]);
+		return dstores.values();
 	}
 	public static Socket[] getDStores(String filename)
 	{

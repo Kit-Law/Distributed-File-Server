@@ -21,10 +21,11 @@ public class RebalancingControllerServer
 		getFileData(dstoreFiles, fileCounts, controller);
 		
 		int maxFiles = (int) Math.ceil(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
+		int minFiles = (int) Math.floor(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
 		
 		ArrayList<Map.Entry<String, MutableInt>> filesToAlter = calFilesToAlter(fileCounts);
 		
-		HashMap<Socket, ArrayList<String>> toRemove = calFilesToRemove(dstoreFiles, filesToAlter);
+		HashMap<Socket, ArrayList<String>> toRemove = calFilesToRemove(dstoreFiles, filesToAlter, minFiles);
 		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, toRemove, maxFiles);
 		
 		messageDStores(dstoreFiles, toRemove, toStore, controller);
@@ -43,10 +44,18 @@ public class RebalancingControllerServer
 			if (!MessageSocket.getOpcode(msg).equals(Protocol.LIST_TOKEN))
 				throw new IOException("Wrong Opcode received.");
 			
+			if (MessageSocket.getOperand(msg)[0].equals(""))
+			{
+				dstoreFiles.add(Map.entry(dstore, new String[0]));
+				continue;
+			}
+			
 			dstoreFiles.add(Map.entry(dstore, MessageSocket.getOperand(msg)));
 			
 			for (String file : MessageSocket.getOperand(msg))
+			{
 				MutableInt.incrementCount(fileCounts, file);
+			}
 		}
 	}
 	
@@ -62,7 +71,8 @@ public class RebalancingControllerServer
 	}
 	
 	public static HashMap<Socket, ArrayList<String>> calFilesToRemove(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles,
-																	  ArrayList<Map.Entry<String, MutableInt>> filesToAlter)
+																	  ArrayList<Map.Entry<String, MutableInt>> filesToAlter,
+																	  int minFiles)
 	{
 		HashMap<Socket, ArrayList<String>> toRemove = new HashMap<>();
 		
@@ -76,6 +86,9 @@ public class RebalancingControllerServer
 			
 			for (int j = 0; j < times; j++)
 			{
+				if ((dstoreFiles.get(i).getValue().length - buffer.size()) <= minFiles)
+					break;
+				
 				if (filesToAlter.get(j).getValue().get() < 0 &&
 						Arrays.asList(dstoreFiles.get(i).getValue()).contains(filesToAlter.get(j).getKey()))
 				{
@@ -122,7 +135,12 @@ public class RebalancingControllerServer
 			{
 				if (toStore.containsKey(file))
 					toStore.get(file).add(ControllerServer.getDStorePort(dstoreFile.getKey()));
-				else toStore.put(file, new ArrayList<>(ControllerServer.getDStorePort(dstoreFile.getKey())));
+				else
+				{
+					ArrayList<Integer> ports = new ArrayList<>();
+					ports.add(ControllerServer.getDStorePort(dstoreFile.getKey()));
+					toStore.put(file, ports);
+				}
 			}
 		}
 		
@@ -137,7 +155,7 @@ public class RebalancingControllerServer
 		for (Map.Entry<Socket, String[]> dstore : dstoreFiles)
 		{
 			StringBuilder storeMsg = new StringBuilder();
-			int storeCount = 1;
+			int storeCount = 0;
 			
 			for (String file : dstore.getValue())
 			{
@@ -152,15 +170,19 @@ public class RebalancingControllerServer
 			}
 			
 			StringBuilder removeMsg = new StringBuilder();
+			int removeCount = 0;
 			if (toRemove.containsKey(dstore.getKey()))
-				removeMsg.append(toRemove.get(dstore.getKey()).size()).append(' ').append(String.join(" ", toRemove.get(dstore.getKey())));
+			{
+				removeMsg.append(String.join(" ", toRemove.get(dstore.getKey())));
+				removeCount++;
+			}
 			
-			if (storeMsg.length() == 0 && removeMsg.length() == 0)
+			if (storeCount == 0 && removeCount == 0)
 				continue;
 			
-			MessageSocket.sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + " " + removeMsg, dstore.getKey(), ControllerLogger.getInstance(), controller);
+			MessageSocket.sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + removeCount + " " + removeMsg, dstore.getKey(), ControllerLogger.getInstance(), controller);
 			
-			if (!MessageSocket.receiveMessage(dstore.getKey(), ControllerLogger.getInstance(), controller).equals(Protocol.REBALANCE_COMPLETE_TOKEN))
+			if (!MessageSocket.receiveMessage(dstore.getKey(), ControllerLogger.getInstance(), controller).equals(Protocol.REBALANCE_COMPLETE_TOKEN + " "))
 				throw new IOException("Sadge");
 		}
 	}

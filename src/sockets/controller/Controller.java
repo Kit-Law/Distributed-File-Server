@@ -44,6 +44,7 @@ public class Controller extends MessageClient implements Runnable
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
+			catch (SocketException e) {  }
 			catch (NullPointerException e) { break; }
 			catch (IOException e) { e.printStackTrace(); }
 		}
@@ -88,7 +89,7 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.addDStore(Integer.parseInt(port), client);
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), Integer.parseInt(port));
 		
-		//RebalancingControllerServer.handleRebalance(getSocket());
+		RebalancingControllerServer.handleRebalance(getSocket());
 	}
 	
 	private void handleListRequest() throws NotEnoughDstores
