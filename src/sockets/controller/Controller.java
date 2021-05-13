@@ -11,6 +11,7 @@ import database.State;
 import java.io.*;
 import java.net.Socket;
 import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.nio.file.FileAlreadyExistsException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -41,15 +42,12 @@ public class Controller extends MessageClient implements Runnable
 			{
 				handleMessage();
 			}
-			catch (SocketException e)
-			{
-				if (port != null) ControllerServer.dstoreFailed(port);
-				return;
-			}
+			catch (SocketException e) { if (port != null) ControllerServer.dstoreFailed(port); return; }
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
-			catch (NullPointerException e) { break; }
+			catch (SocketTimeoutException e) { e.printStackTrace(); return; }
+			catch (NullPointerException e) { return; }
 			catch (IOException e) { e.printStackTrace(); }
 		}
 	}
@@ -93,6 +91,8 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleDstoreConnect(Integer port) throws IOException
 	{
+		client.setSoTimeout(999999999);
+		
 		this.port = port;
 		ControllerServer.addDStore(port, client);
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), port);
@@ -121,6 +121,7 @@ public class Controller extends MessageClient implements Runnable
 		
 		//Creates a new database entry
 		ControllerServer.newDatabaseEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, dstorePorts));
+		ControllerServer.clearRemoveACKS(file);
 		
 		//Send the ports to the client.
 		sendMessage(Protocol.STORE_TO_TOKEN, Stream.of(dstorePorts).map(Object::toString).collect(Collectors.joining(" ")));
