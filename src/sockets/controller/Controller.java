@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 public class Controller extends MessageClient implements Runnable
 {
 	private Socket client;
+	private Integer port = null;
 	
 	//java Controller cport R timeout
 	public static void main(String[] args)
@@ -40,7 +41,11 @@ public class Controller extends MessageClient implements Runnable
 			{
 				handleMessage();
 			}
-			catch (SocketException e) { return; } //TODO: Make this update the dstore hashmap and database
+			catch (SocketException e)
+			{
+				if (port != null) ControllerServer.dstoreFailed(port);
+				return;
+			}
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
@@ -57,7 +62,7 @@ public class Controller extends MessageClient implements Runnable
 		switch (MessageSocket.getOpcode(msg))
 		{
 			case Protocol.JOIN_TOKEN:
-				handleDstoreConnect(operand[0]);
+				handleDstoreConnect(Integer.parseInt(operand[0]));
 				break;
 			case Protocol.LIST_TOKEN:
 				handleListRequest();
@@ -71,6 +76,9 @@ public class Controller extends MessageClient implements Runnable
 			case Protocol.LOAD_TOKEN:
 				handleLoadRequest(operand[0]);
 				break;
+			case Protocol.RELOAD_TOKEN:
+				handleReLoadRequest(operand[0]);
+				break;
 			case Protocol.REMOVE_TOKEN:
 				handleRemoveRequest(operand[0]);
 				break;
@@ -83,18 +91,19 @@ public class Controller extends MessageClient implements Runnable
 		}
 	}
 	
-	private void handleDstoreConnect(String port) throws IOException
+	private void handleDstoreConnect(Integer port) throws IOException
 	{
-		ControllerServer.addDStore(Integer.parseInt(port), client);
-		ControllerLogger.getInstance().dstoreJoined(getSocket(), Integer.parseInt(port));
+		this.port = port;
+		ControllerServer.addDStore(port, client);
+		ControllerLogger.getInstance().dstoreJoined(getSocket(), port);
 		
 		RebalancingControllerServer.handleRebalance();
 	}
 	
 	private void handleListRequest() throws NotEnoughDstores
 	{
-		if (ControllerServer.isDstore(client))
-			return;
+		//if (ControllerServer.isDstore(client))
+		//	return;
 		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
@@ -135,7 +144,19 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.selectDStore(file) + " " + ControllerServer.getFileSize(file));
+		Integer port = ControllerServer.selectDStore(file, 0);
+		ControllerServer.addLoad(client, port);
+		
+		sendMessage(Protocol.LOAD_FROM_TOKEN, port + " " + ControllerServer.getFileSize(file));
+	}
+	
+	private void handleReLoadRequest(String file) throws NotEnoughDstores, FileNotFoundException
+	{
+		if (!ControllerServer.hasEnoughDstores())
+			throw new NotEnoughDstores();
+		
+		try { sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.reLoad(client, file) + " " + ControllerServer.getFileSize(file)); }
+		catch (IOException e) { sendMessage(Protocol.ERROR_LOAD_TOKEN, ""); }
 	}
 	
 	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException
@@ -167,4 +188,6 @@ public class Controller extends MessageClient implements Runnable
 	{
 		ControllerServer.addNewRemoveAck(filename);
 	}
+	
+	public void pause() throws InterruptedException { Thread.sleep(100); }
 }

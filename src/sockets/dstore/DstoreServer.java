@@ -31,7 +31,9 @@ public class DstoreServer extends Server
 				Files.createDirectory(Paths.get(file_folder));
 			else
 			{
-				//Stream.of(Objects.requireNonNull(new File(file_folder).listFiles())).map(File::delete); //TODO: Add this back
+				for(File file: new File(file_folder).listFiles())
+					if (!file.isDirectory())
+						file.delete();
 			}
 			
 			controller = new DstoreController(cport, port);

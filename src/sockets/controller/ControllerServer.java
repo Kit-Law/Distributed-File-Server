@@ -18,12 +18,14 @@ public class ControllerServer extends Server
 	private static int R;
 	public static int timeout;
 	
-	private static ArrayList<Thread> threads = new ArrayList<>();
+	private static ArrayList<Controller> instances = new ArrayList<>();
 	
 	private static ConcurrentHashMap<String, MetaData> database = new ConcurrentHashMap<>();
 	private static ConcurrentHashMap<String, MutableInt> storeAcks = new ConcurrentHashMap<>();
 	private static ConcurrentHashMap<String, MutableInt> removeAcks = new ConcurrentHashMap<>();
 	private static ConcurrentHashMap<Integer, Socket> dstores = new ConcurrentHashMap<>();
+	
+	private static ConcurrentHashMap<Integer, Integer> loads = new ConcurrentHashMap<>();
 	
 	public ControllerServer(final int cport, final int R, final int timeout, final int rebalance_period)
 	{
@@ -31,12 +33,29 @@ public class ControllerServer extends Server
 		ControllerServer.R = R;
 		ControllerServer.timeout = timeout;
 		
-		new Thread(new RebalanceController(rebalance_period)).start();
+		//new Thread(new RebalanceController(rebalance_period)).start();
 		
 		try { ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL); }
 		catch (IOException e) { e.printStackTrace(); }
 		
 		launchServer();
+	}
+	
+	public static void dstoreFailed(Integer port)
+	{
+		ArrayList<String> toRemove = new ArrayList<>();
+		
+		for (Map.Entry<String, MetaData> file : database.entrySet())
+		{
+			file.getValue().removePort(port);
+			if (file.getValue().getDstorePorts().size() == 0) toRemove.add(file.getKey());
+		}
+		
+		for (String file : toRemove)
+			database.remove(file);
+		
+		dstores.remove(port);
+		loads.remove(port);
 	}
 	
 	@Override
@@ -47,10 +66,10 @@ public class ControllerServer extends Server
 		DataOutputStream out = new DataOutputStream(client.getOutputStream());
 		
 		// create a new thread object
-		Thread controller = new Thread(new Controller(client, in, out));
-		controller.start();
+		Controller instance = new Controller(client, in, out);
+		instances.add(instance);
 		
-		threads.add(controller);
+		new Thread(instance).start();
 	}
 	
 	public static void freeFile(String filename) throws FileAlreadyExistsException
@@ -106,6 +125,7 @@ public class ControllerServer extends Server
 			
 		throw new IOException("Socket not present");
 	}
+	
 	public static Collection<Socket> getDStores()
 	{
 		return dstores.values();
@@ -116,12 +136,12 @@ public class ControllerServer extends Server
 				.map((port) -> dstores.get(port)).toArray(Socket[]::new);
 	}
 	
-	public static int selectDStore(String filename) throws FileNotFoundException
+	public static int selectDStore(String filename, Integer index) throws FileNotFoundException
 	{
 		if (!database.containsKey(filename))
 			throw new FileNotFoundException(filename);
 		
-		return database.get(filename).getDstorePorts().get(0);
+		return database.get(filename).getDstorePorts().get(index);
 	}
 	
 	public static int getR() { return R; }
@@ -154,15 +174,17 @@ public class ControllerServer extends Server
 	
 	public static boolean hasEnoughDstores() { return dstores.size() >= R; }
 	
-	public static void pause() { threads.forEach((thread ->
-	{
-		try { thread.wait(); }
-		catch (InterruptedException e) { e.printStackTrace(); } }));
-	}
-	public static void resume() { threads.forEach(Thread::notify); }
-	
 	public static void clearStoreACKS(String file) { storeAcks.remove(file); }
 	public static void clearRemoveACKS(String file) { removeAcks.remove(file); }
 	
 	public static boolean isDstore(Socket client) { return dstores.containsValue(client); }
+	
+	public static void addLoad(Socket client, Integer port) { loads.put(client.getPort(), port); }
+	public static Integer reLoad(Socket client, String filename) throws IOException, FileNotFoundException
+	{
+		if (!loads.contains(client.getPort()))
+			throw new IOException("ERROR_LOAD");
+		
+		return selectDStore(filename, 1);
+	}
 }

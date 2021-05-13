@@ -33,7 +33,7 @@ public class MetaData implements Serializable
 	public void setState(State state) { this.state = state; }
 	
 	public void addPorts(ArrayList<Integer> toStore) { dstorePorts.addAll(toStore); }
-	public void removePort(int toRemove) { dstorePorts.remove(toRemove); }
+	public void removePort(int toRemove) { if (dstorePorts.contains(toRemove)) dstorePorts.removeIf(port -> port == toRemove); }
 	public void validatePort(int port) { if (!dstorePorts.contains(port)) dstorePorts.add(port); }
 	
 	/**
