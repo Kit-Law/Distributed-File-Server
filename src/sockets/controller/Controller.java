@@ -105,6 +105,12 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleListRequest() throws NotEnoughDstores
 	{
+		if (ControllerServer.isDstore(client))
+		{
+			sendMessage(Protocol.LIST_TOKEN, "");
+			return;
+		}
+		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		

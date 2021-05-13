@@ -150,6 +150,7 @@ public class RebalancingControllerServer
 				else if (times < filesToAlter.size()) times++;
 			}
 			
+			/** Fix this */
 			int remaining = buffer.size() + dstoreFile.getValue().length;
 			for (int j = remaining; j < max; j++)
 			{
@@ -182,6 +183,7 @@ public class RebalancingControllerServer
 					if (b) break;
 				}
 			}
+			/** Fix this */
 			
 			for (String file : buffer)
 			{

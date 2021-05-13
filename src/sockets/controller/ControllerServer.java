@@ -33,7 +33,7 @@ public class ControllerServer extends Server
 		ControllerServer.R = R;
 		ControllerServer.timeout = timeout;
 		
-		//new Thread(new RebalanceController(rebalance_period)).start();
+		new Thread(new RebalanceController(rebalance_period)).start();
 		
 		try { ControllerLogger.init(Logger.LoggingType.ON_FILE_AND_TERMINAL); }
 		catch (IOException e) { e.printStackTrace(); }

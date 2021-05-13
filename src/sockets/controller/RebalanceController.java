@@ -2,7 +2,7 @@ package sockets.controller;
 
 import java.io.IOException;
 
-/*public class RebalanceController implements Runnable
+public class RebalanceController implements Runnable
 {
 	private int rebalancePeriod;
 	
@@ -20,7 +20,7 @@ import java.io.IOException;
 			{
 				Thread.sleep(rebalancePeriod);
 				
-				ControllerServer.beginRebalnce();
+				RebalancingControllerServer.handleRebalance();
 			}
 			catch (InterruptedException | IOException e)
 			{
@@ -28,4 +28,4 @@ import java.io.IOException;
 			}
 		}
 	}
-}*/
+}
