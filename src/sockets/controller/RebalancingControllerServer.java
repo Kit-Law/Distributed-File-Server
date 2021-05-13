@@ -30,9 +30,10 @@ public class RebalancingControllerServer
 		int minFiles = (int) Math.floor(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
 		
 		ArrayList<Map.Entry<String, MutableInt>> filesToAlter = calFilesToAlter(fileCounts);
+		ArrayList<String> filesToShuffle = calFilesToShuffle(fileCounts);
 		
 		HashMap<Socket, ArrayList<String>> toRemove = calFilesToRemove(dstoreFiles, filesToAlter, minFiles);
-		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, toRemove, maxFiles);
+		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, filesToShuffle, toRemove, maxFiles);
 		
 		messageDStores(dstoreFiles, toRemove, toStore);
 	
@@ -76,6 +77,17 @@ public class RebalancingControllerServer
 		return filesToAlter;
 	}
 	
+	private static ArrayList<String> calFilesToShuffle(ConcurrentHashMap<String, MutableInt> fileCounts)
+	{
+		ArrayList<String> filesToShuffle = new ArrayList<>();
+		
+		for (Map.Entry<String, MutableInt> file : fileCounts.entrySet())
+			if (file.getValue().get() == ControllerServer.getR())
+				filesToShuffle.add(file.getKey());
+		
+		return filesToShuffle;
+	}
+	
 	public static HashMap<Socket, ArrayList<String>> calFilesToRemove(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles,
 																	  ArrayList<Map.Entry<String, MutableInt>> filesToAlter,
 																	  int minFiles)
@@ -113,6 +125,7 @@ public class RebalancingControllerServer
 	
 	public static HashMap<String, ArrayList<Integer>> calFilesToStore(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles,
 																	  ArrayList<Map.Entry<String, MutableInt>> filesToAlter,
+																	  ArrayList<String> filesToShuffle,
 																	  HashMap<Socket, ArrayList<String>> toRemove,
 																	  int max) throws IOException
 	{
@@ -135,6 +148,39 @@ public class RebalancingControllerServer
 					filesToAlter.get(j).getValue().decrement();
 				}
 				else if (times < filesToAlter.size()) times++;
+			}
+			
+			int remaining = buffer.size() + dstoreFile.getValue().length;
+			for (int j = remaining; j < max; j++)
+			{
+				String file = filesToShuffle.get(0);
+				
+				for (Map.Entry<Socket, String[]> dfile : dstoreFiles)
+				{
+					if (dfile == dstoreFile)
+						continue;
+					
+					boolean b = false;
+					for (String f : dfile.getValue())
+					{
+						if (f.equals(file))
+						{
+							if (!toRemove.containsKey(dfile.getKey()))
+								toRemove.put(dfile.getKey(), new ArrayList<String>());
+							
+							toRemove.get(dfile.getKey()).add(f);
+							buffer.add(f);
+							filesToShuffle.remove(0);
+							file = filesToShuffle.get(0);
+							j++;
+							
+							if (j == max) b = true;
+							
+							break;
+						}
+					}
+					if (b) break;
+				}
 			}
 			
 			for (String file : buffer)
