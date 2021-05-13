@@ -100,6 +100,10 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.addDStore(port, client);
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), port);
 		
+		while (RebalancingControllerServer.isRebalancing)
+			try { Thread.sleep(10); }
+			catch (Exception e) { e.printStackTrace(); }
+		
 		RebalancingControllerServer.handleRebalance();
 	}
 	

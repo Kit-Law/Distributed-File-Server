@@ -17,10 +17,12 @@ import java.util.stream.Collectors;
 public class RebalancingControllerServer
 {
 	public static boolean rebalanceComplete;
+	public static boolean isRebalancing;
 	
 	public static void handleRebalance() throws IOException
 	{
 		rebalanceComplete = false;
+		isRebalancing = true;
 		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
 		ConcurrentHashMap<String, MutableInt> fileCounts = new ConcurrentHashMap<>();
 
@@ -30,14 +32,16 @@ public class RebalancingControllerServer
 		int minFiles = (int) Math.floor(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
 		
 		ArrayList<Map.Entry<String, MutableInt>> filesToAlter = calFilesToAlter(fileCounts);
-		ArrayList<String> filesToShuffle = calFilesToShuffle(fileCounts);
+		ArrayList<Map.Entry<String, ArrayList<Socket>>> filesToShuffle = calFilesToShuffle(dstoreFiles, fileCounts);
 		
 		HashMap<Socket, ArrayList<String>> toRemove = calFilesToRemove(dstoreFiles, filesToAlter, minFiles);
-		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, filesToShuffle, toRemove, maxFiles);
+		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, filesToShuffle, toRemove, maxFiles, minFiles);
 		
 		messageDStores(dstoreFiles, toRemove, toStore);
 	
 		updateDatabase(dstoreFiles, toRemove, toStore);
+		
+		isRebalancing = false;
 	}
 	
 	private static void getFileData(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, ConcurrentHashMap<String, MutableInt> fileCounts) throws IOException
@@ -77,14 +81,23 @@ public class RebalancingControllerServer
 		return filesToAlter;
 	}
 	
-	private static ArrayList<String> calFilesToShuffle(ConcurrentHashMap<String, MutableInt> fileCounts)
+	private static ArrayList<Map.Entry<String, ArrayList<Socket>>> calFilesToShuffle(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles, ConcurrentHashMap<String, MutableInt> fileCounts)
 	{
-		ArrayList<String> filesToShuffle = new ArrayList<>();
+		ArrayList<Map.Entry<String, ArrayList<Socket>>> filesToShuffle = new ArrayList<>();
 		
 		for (Map.Entry<String, MutableInt> file : fileCounts.entrySet())
 			if (file.getValue().get() == ControllerServer.getR())
-				filesToShuffle.add(file.getKey());
-		
+			{
+				ArrayList<Socket> sockets = new ArrayList<>();
+				
+				for (Map.Entry<Socket, String[]> dstore : dstoreFiles)
+					for (String df : dstore.getValue())
+						if (df.equals(file.getKey()))
+							sockets.add(dstore.getKey());
+				
+				filesToShuffle.add(new AbstractMap.SimpleEntry<>(file.getKey(), sockets));
+			}
+
 		return filesToShuffle;
 	}
 	
@@ -125,9 +138,10 @@ public class RebalancingControllerServer
 	
 	public static HashMap<String, ArrayList<Integer>> calFilesToStore(ArrayList<Map.Entry<Socket, String[]>> dstoreFiles,
 																	  ArrayList<Map.Entry<String, MutableInt>> filesToAlter,
-																	  ArrayList<String> filesToShuffle,
+																	  ArrayList<Map.Entry<String, ArrayList<Socket>>> filesToShuffle,
 																	  HashMap<Socket, ArrayList<String>> toRemove,
-																	  int max) throws IOException
+																	  int max,
+																	  int min) throws IOException
 	{
 		HashMap<String, ArrayList<Integer>> toStore = new HashMap<>();
 		
@@ -151,36 +165,25 @@ public class RebalancingControllerServer
 			}
 			
 			/** Fix this */
-			int remaining = buffer.size() + dstoreFile.getValue().length;
-			for (int j = remaining; j < max; j++)
+			int remaining = min - (buffer.size() + dstoreFile.getValue().length);
+			ArrayList<Socket> shuffled = new ArrayList<>();
+			for (int j = 0; j < remaining; j++)
 			{
-				String file = filesToShuffle.get(0);
+				Map.Entry<String, ArrayList<Socket>> file = filesToShuffle.get(j);
 				
-				for (Map.Entry<Socket, String[]> dfile : dstoreFiles)
+				for (Socket dstore : file.getValue())
 				{
-					if (dfile == dstoreFile)
-						continue;
-					
-					boolean b = false;
-					for (String f : dfile.getValue())
+					if (!shuffled.contains(dstore))
 					{
-						if (f.equals(file))
-						{
-							if (!toRemove.containsKey(dfile.getKey()))
-								toRemove.put(dfile.getKey(), new ArrayList<String>());
-							
-							toRemove.get(dfile.getKey()).add(f);
-							buffer.add(f);
-							filesToShuffle.remove(0);
-							file = filesToShuffle.get(0);
-							j++;
-							
-							if (j == max) b = true;
-							
-							break;
-						}
+						shuffled.add(dstore);
+						if (!toRemove.containsKey(dstore))
+							toRemove.put(dstore, new ArrayList<String>());
+						
+						toRemove.get(dstore).add(file.getKey());
+						buffer.add(file.getKey());
+						
+						break;
 					}
-					if (b) break;
 				}
 			}
 			/** Fix this */

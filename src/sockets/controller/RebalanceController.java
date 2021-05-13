@@ -20,6 +20,10 @@ public class RebalanceController implements Runnable
 			{
 				Thread.sleep(rebalancePeriod);
 				
+				while (RebalancingControllerServer.isRebalancing)
+					try { Thread.sleep(10); }
+					catch (Exception e) { e.printStackTrace(); }
+				
 				RebalancingControllerServer.handleRebalance();
 			}
 			catch (InterruptedException | IOException e)
