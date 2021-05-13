@@ -83,6 +83,9 @@ public class Controller extends MessageClient implements Runnable
 			case Protocol.REMOVE_ACK_TOKEN:
 				handleRemoveAck(operand[0]);
 				break;
+			case Protocol.REBALANCE_COMPLETE_TOKEN:
+				RebalancingControllerServer.rebalanceComplete = true;
+				break;
 			default:
 				System.err.println("Malformed Message Received: " + msg);
 				break;
@@ -102,9 +105,6 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleListRequest() throws NotEnoughDstores
 	{
-		//if (ControllerServer.isDstore(client))
-		//	return;
-		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		

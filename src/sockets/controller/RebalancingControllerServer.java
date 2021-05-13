@@ -16,8 +16,11 @@ import java.util.stream.Collectors;
 
 public class RebalancingControllerServer
 {
+	public static boolean rebalanceComplete;
+	
 	public static void handleRebalance() throws IOException
 	{
+		rebalanceComplete = false;
 		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
 		ConcurrentHashMap<String, MutableInt> fileCounts = new ConcurrentHashMap<>();
 
@@ -184,8 +187,13 @@ public class RebalancingControllerServer
 			
 			MessageSocket.sendMessage(Protocol.REBALANCE_TOKEN, storeCount + " " + storeMsg + removeCount + " " + removeMsg, dstore.getKey(), ControllerLogger.getInstance(), dstore.getKey());
 			
-			if (!MessageSocket.receiveMessage(dstore.getKey(), ControllerLogger.getInstance(), dstore.getKey()).equals(Protocol.REBALANCE_COMPLETE_TOKEN + " "))
-				throw new IOException("Sadge");
+			while (!rebalanceComplete)
+				try { Thread.sleep(10); }
+				catch (Exception e) { e.printStackTrace(); }
+			
+			rebalanceComplete = false;
+			//if (!MessageSocket.receiveMessage(dstore.getKey(), ControllerLogger.getInstance(), dstore.getKey()).equals(Protocol.REBALANCE_COMPLETE_TOKEN + " "))
+			//	throw new IOException("Sadge");
 		}
 	}
 	
