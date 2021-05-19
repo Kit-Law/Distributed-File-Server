@@ -35,7 +35,7 @@ public abstract class Server
 				try
 				{
 					client = serverSocket.accept();
-					client.setSoTimeout(timeout);
+					//client.setSoTimeout(timeout);
 					
 					handleConnection(client);
 				}

@@ -13,6 +13,8 @@ public class MetaData implements Serializable
 	private State state;
 	private long size;
 	private ArrayList<Integer> dstorePorts = new ArrayList<>();
+	private int storeAcks = 0;
+	private int removeAcks = 0;
 	
 	public MetaData(State state, long size, Integer[] dstorePorts)
 	{
@@ -21,28 +23,20 @@ public class MetaData implements Serializable
 		this.dstorePorts.addAll(Arrays.asList(dstorePorts));
 	}
 	
+	public void addPort(int port) { if (!dstorePorts.contains(port)) dstorePorts.add(port); }
+	public void addPorts(ArrayList<Integer> toStore) { dstorePorts.addAll(toStore); }
+	public void removePort(int toRemove) { dstorePorts.removeIf(port -> port == toRemove); }
+	
+	public void incrementStoreAcks() { storeAcks++; }
+	public void incrementRemoveAcks() { removeAcks++; }
+	public void resetStroeAcks() { storeAcks = 0; }
+	public void resetRemoveAcks() { removeAcks = 0; }
+	
+	public void setState(State state) { this.state = state; } //TODO: check this ageinets the old one
+	
 	public State getState() { return state; }
 	public long getSize() { return size; }
 	public ArrayList<Integer> getDstorePorts() { return dstorePorts; }
-	
-	/**
-	 * Set the current state of a file in the database.
-	 *
-	 * @param state Current state of the file.
-	 */
-	public void setState(State state) { this.state = state; }
-	
-	public void addPorts(ArrayList<Integer> toStore) { dstorePorts.addAll(toStore); }
-	public void removePort(int toRemove) { if (dstorePorts.contains(toRemove)) dstorePorts.removeIf(port -> port == toRemove); }
-	public void validatePort(int port) { if (!dstorePorts.contains(port)) dstorePorts.add(port); }
-	
-	/**
-	 * A simple parser over the State enum to get the name of a state.
-	 *
-	 * @return A parsed name of the state.
-	 */
-	public String parseState()
-	{
-		return state.name().replace('_', ' ').toLowerCase();
-	}
+	public int getStoreAcks() { return storeAcks; }
+	public int getRemoveAcks() { return removeAcks; }
 }

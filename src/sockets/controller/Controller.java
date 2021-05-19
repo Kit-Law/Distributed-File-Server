@@ -94,7 +94,7 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleDstoreConnect(Integer port) throws IOException
 	{
-		client.setSoTimeout(999999999);
+		//client.setSoTimeout(999999999);
 		
 		this.port = port;
 		ControllerServer.addDStore(port, client);
@@ -118,7 +118,7 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		sendMessage(Protocol.LIST_TOKEN, ControllerServer.getFileList());
+		sendMessage(Protocol.LIST_TOKEN, ControllerServer.getDatabase().getFileList());
 	}
 	
 	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores
@@ -126,28 +126,26 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		ControllerServer.freeFile(file);
+		ControllerServer.getDatabase().freeFile(file);
 		Integer[] dstorePorts = ControllerServer.getRdstores();
 		
 		//Creates a new database entry
-		ControllerServer.newDatabaseEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, dstorePorts));
-		ControllerServer.clearRemoveACKS(file);
+		ControllerServer.getDatabase().newEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, dstorePorts));
 		
 		//Send the ports to the client.
 		sendMessage(Protocol.STORE_TO_TOKEN, Stream.of(dstorePorts).map(Object::toString).collect(Collectors.joining(" ")));
 		
-		while (!ControllerServer.isReplicatedRTimes(file))
+		while (!ControllerServer.getDatabase().isReplicatedRTimes(file, ControllerServer.getR()))
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 		
 		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
-		ControllerServer.setFileState(file, State.STORE_COMPLETE);
-		ControllerServer.clearStoreACKS(file);
+		ControllerServer.getDatabase().updateFileState(file, State.STORE_COMPLETE);
 	}
 	
 	private void handleStoreAck(String filename)
 	{
-		ControllerServer.addNewStoreAck(filename);
+		ControllerServer.getDatabase().getMetaData(filename).incrementStoreAcks();
 	}
 	
 	private void handleLoadRequest(final String file) throws NotEnoughDstores, FileNotFoundException
@@ -155,10 +153,10 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		Integer port = ControllerServer.selectDStore(file, 0);
+		Integer port = ControllerServer.getDatabase().selectDStore(file, 0);
 		ControllerServer.addLoad(client, port);
 		
-		sendMessage(Protocol.LOAD_FROM_TOKEN, port + " " + ControllerServer.getFileSize(file));
+		sendMessage(Protocol.LOAD_FROM_TOKEN, port + " " + ControllerServer.getDatabase().getMetaData(file).getSize());
 	}
 	
 	private void handleReLoadRequest(String file) throws NotEnoughDstores, FileNotFoundException
@@ -166,7 +164,7 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		try { sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.reLoad(client, file) + " " + ControllerServer.getFileSize(file)); }
+		try { sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.reLoad(client, file) + " " + ControllerServer.getDatabase().getMetaData(file).getSize()); }
 		catch (IOException e) { sendMessage(Protocol.ERROR_LOAD_TOKEN, ""); }
 	}
 	
@@ -175,7 +173,7 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		ControllerServer.setFileState(file, State.REMOVE_IN_PROGRESS);
+		ControllerServer.getDatabase().updateFileState(file, State.REMOVE_IN_PROGRESS);
 		
 		for (Socket dstore : ControllerServer.getDStores(file))
 		{
@@ -186,18 +184,17 @@ public class Controller extends MessageClient implements Runnable
 			catch (Exception e) { e.printStackTrace(); }
 		}
 		
-		while (!ControllerServer.isRemoved(file))
+		while (!ControllerServer.getDatabase().isRemoved(file))
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 		
 		sendMessage(Protocol.REMOVE_COMPLETE_TOKEN, "");
-		ControllerServer.setFileState(file, State.REMOVE_COMPLETE);
-		ControllerServer.clearRemoveACKS(file);
+		ControllerServer.getDatabase().updateFileState(file, State.REMOVE_COMPLETE);
 	}
 	
 	private void handleRemoveAck(String filename)
 	{
-		ControllerServer.addNewRemoveAck(filename);
+		ControllerServer.getDatabase().getMetaData(filename).incrementRemoveAcks();
 	}
 	
 	public void pause() throws InterruptedException { Thread.sleep(100); }

@@ -257,18 +257,18 @@ public class RebalancingControllerServer
 			int port = ControllerServer.getDStorePort(dstore.getKey());
 			
 			for (String file : dstore.getValue())
-				ControllerServer.validateDatabasePort(file, port);
+				ControllerServer.getDatabase().addPort(file, port);
 		}
 		
 		for (Map.Entry<String, ArrayList<Integer>> entry : toStore.entrySet())
-			ControllerServer.addDatabasePorts(entry.getKey(), entry.getValue());
+			ControllerServer.getDatabase().addPorts(entry.getKey(), entry.getValue());
 		
 		for (Map.Entry<Socket, ArrayList<String>> entry : toRemove.entrySet())
 		{
 			int port = ControllerServer.getDStorePort(entry.getKey());
 			
 			for (String file : entry.getValue())
-				ControllerServer.removeDatabasePort(file, port);
+				ControllerServer.getDatabase().removePort(file, port);
 		}
 	}
 }
