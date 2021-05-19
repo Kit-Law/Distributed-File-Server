@@ -63,7 +63,8 @@ public class Controller extends MessageClient implements Runnable
 				handleDstoreConnect(Integer.parseInt(operand[0]));
 				break;
 			case Protocol.LIST_TOKEN:
-				handleListRequest();
+				if (ControllerServer.isDstore(client)) handleRebalList(msg);
+				else handleListRequest();
 				break;
 			case Protocol.STORE_TOKEN:
 				handleStoreRequest(operand[0], Long.parseLong(operand[1]));
@@ -104,17 +105,17 @@ public class Controller extends MessageClient implements Runnable
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 		
-		RebalancingControllerServer.handleRebalance();
+		new Thread(new RebalancingControllerServer()).start();
+	}
+	
+	private void handleRebalList(String msg)
+	{
+		RebalancingControllerServer.msg = msg;
+		RebalancingControllerServer.msgReceived = true;
 	}
 	
 	private void handleListRequest() throws NotEnoughDstores
 	{
-		if (ControllerServer.isDstore(client))
-		{
-			sendMessage(Protocol.LIST_TOKEN, "");
-			return;
-		}
-		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		

@@ -14,15 +14,23 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-public class RebalancingControllerServer
+public class RebalancingControllerServer implements Runnable
 {
 	public static boolean rebalanceComplete;
 	public static boolean isRebalancing;
+	public static boolean msgReceived;
+	public static String msg;
+	
+	@Override
+	public void run() { try { handleRebalance(); } catch (IOException e) { e.printStackTrace(); } }
 	
 	public static void handleRebalance() throws IOException
 	{
 		rebalanceComplete = false;
 		isRebalancing = true;
+		msgReceived = false;
+		msg = null;
+		
 		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
 		ConcurrentHashMap<String, MutableInt> fileCounts = new ConcurrentHashMap<>();
 
@@ -50,7 +58,12 @@ public class RebalancingControllerServer
 		{
 			MessageSocket.sendMessage(Protocol.LIST_TOKEN, "", dstore, ControllerLogger.getInstance(), dstore);
 			
-			String msg = MessageSocket.receiveMessage(dstore, ControllerLogger.getInstance(), dstore);
+			while (!msgReceived)
+				try { Thread.sleep(10); }
+				catch (Exception e) { e.printStackTrace(); }
+			
+			msgReceived = false;
+			//String msg = MessageSocket.receiveMessage(dstore, ControllerLogger.getInstance(), dstore);
 			
 			if (!MessageSocket.getOpcode(msg).equals(Protocol.LIST_TOKEN))
 				throw new IOException("Wrong Opcode received.");
