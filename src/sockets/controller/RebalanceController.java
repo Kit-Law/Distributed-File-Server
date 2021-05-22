@@ -24,14 +24,13 @@ public class RebalanceController implements Runnable
 					try { Thread.sleep(10); }
 					catch (Exception e) { e.printStackTrace(); }
 				
-				//synchronized (ControllerServer.getDatabase())
-				//{
-					RebalancingControllerServer.handleRebalance();
-				//}
+				RebalancingControllerServer.handleRebalance();
+				RebalancingControllerServer.isRebalancing = false;
 			}
-			catch (InterruptedException | IOException e)
+			catch (Exception e)
 			{
 				e.printStackTrace();
+				RebalancingControllerServer.isRebalancing = false;
 			}
 		}
 	}

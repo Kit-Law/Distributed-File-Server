@@ -84,8 +84,6 @@ public class Controller extends MessageClient implements Runnable
 				handleRemoveRequest(operand[0]);
 				break;
 			case Protocol.REMOVE_ACK_TOKEN:
-				handleRemoveAck(operand[0]);
-				break;
 			case Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN:
 				handleRemoveAck(operand[0]);
 				break;
@@ -98,7 +96,7 @@ public class Controller extends MessageClient implements Runnable
 		}
 	}
 	
-	private void handleDstoreConnect(Integer port) throws IOException
+	private void handleDstoreConnect(Integer port)
 	{
 		this.port = port;
 		ControllerServer.addDStore(port, client);
@@ -125,7 +123,7 @@ public class Controller extends MessageClient implements Runnable
 		sendMessage(Protocol.LIST_TOKEN, ControllerServer.getDatabase().getFileList());
 	}
 	
-	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores, SocketException
+	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores, SocketException, TimeoutException
 	{
 		client.setSoTimeout(ControllerServer.getTimeout());
 		
@@ -146,9 +144,15 @@ public class Controller extends MessageClient implements Runnable
 		//Send the ports to the client.
 		sendMessage(Protocol.STORE_TO_TOKEN, Stream.of(dstorePorts).map(Object::toString).collect(Collectors.joining(" ")));
 		
+		long start = System.currentTimeMillis();
 		while (!ControllerServer.getDatabase().isReplicatedRTimes(file, ControllerServer.getR()))
+		{
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
+			
+			if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout())
+				throw new TimeoutException();
+		}
 		
 		ControllerServer.getDatabase().updateFileState(file, State.STORE_COMPLETE);
 		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
@@ -182,6 +186,7 @@ public class Controller extends MessageClient implements Runnable
 			throw new NotEnoughDstores();
 		
 		try { sendMessage(Protocol.LOAD_FROM_TOKEN, ControllerServer.reLoad(client, file) + " " + ControllerServer.getDatabase().getMetaData(file).getSize()); }
+		catch (FileNotFoundException e) { throw e; }
 		catch (IOException e) { sendMessage(Protocol.ERROR_LOAD_TOKEN, ""); }
 	}
 	
@@ -195,20 +200,23 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.getDatabase().contains(file))
 			throw new FileNotFoundException();
 		
-		if (ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_IN_PROGRESS &&
-				ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_COMPLETE)
+		synchronized (ControllerServer.getDatabase())
 		{
-			ControllerServer.getDatabase().resetRemoveAcks(file);
-			
-			ControllerServer.getDatabase().updateFileState(file, State.REMOVE_IN_PROGRESS);
-			
-			for (Socket dstore : ControllerServer.getDStores(file))
+			if (ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_IN_PROGRESS &&
+					ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_COMPLETE)
 			{
-				try
+				ControllerServer.getDatabase().resetRemoveAcks(file);
+				
+				ControllerServer.getDatabase().updateFileState(file, State.REMOVE_IN_PROGRESS);
+				
+				for (Socket dstore : ControllerServer.getDStores(file))
 				{
-					MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore, ControllerLogger.getInstance(), getSocket());
+					try
+					{
+						MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore, ControllerLogger.getInstance(), getSocket());
+					}
+					catch (Exception e) { e.printStackTrace(); }
 				}
-				catch (Exception e) { e.printStackTrace(); }
 			}
 		}
 		
@@ -232,6 +240,4 @@ public class Controller extends MessageClient implements Runnable
 	{
 		ControllerServer.getDatabase().getMetaData(filename).incrementRemoveAcks();
 	}
-	
-	public void pause() throws InterruptedException { Thread.sleep(100); }
 }

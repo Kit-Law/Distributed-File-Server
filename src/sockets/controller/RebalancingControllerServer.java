@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.nio.channels.SocketChannel;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 public class RebalancingControllerServer implements Runnable
@@ -22,7 +23,8 @@ public class RebalancingControllerServer implements Runnable
 	public static String msg;
 	
 	@Override
-	public void run() { try { handleRebalance(); } catch (IOException e) { e.printStackTrace(); } }
+	public void run() { try { handleRebalance(); RebalancingControllerServer.isRebalancing = false; }
+	catch (Exception e) { e.printStackTrace(); RebalancingControllerServer.isRebalancing = false; } }
 	
 	public static void handleRebalance() throws IOException
 	{
@@ -33,7 +35,7 @@ public class RebalancingControllerServer implements Runnable
 		
 		ArrayList<Map.Entry<Socket, String[]>> dstoreFiles = new ArrayList<>();
 		ConcurrentHashMap<String, MutableInt> fileCounts = new ConcurrentHashMap<>();
-
+		
 		getFileData(dstoreFiles, fileCounts);
 		
 		int maxFiles = (int) Math.ceil(ControllerServer.getR() * fileCounts.size() / (double) dstoreFiles.size());
@@ -46,7 +48,7 @@ public class RebalancingControllerServer implements Runnable
 		HashMap<String, ArrayList<Integer>> toStore = calFilesToStore(dstoreFiles, filesToAlter, filesToShuffle, toRemove, maxFiles, minFiles);
 		
 		messageDStores(dstoreFiles, toRemove, toStore);
-	
+		
 		updateDatabase(dstoreFiles, toRemove, toStore);
 		
 		isRebalancing = false;
@@ -58,12 +60,17 @@ public class RebalancingControllerServer implements Runnable
 		{
 			MessageSocket.sendMessage(Protocol.LIST_TOKEN, "", dstore, ControllerLogger.getInstance(), dstore);
 			
+			long start = System.currentTimeMillis();
 			while (!msgReceived)
+			{
 				try { Thread.sleep(10); }
 				catch (Exception e) { e.printStackTrace(); }
+				
+				if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout())
+					throw new IOException();
+			}
 			
 			msgReceived = false;
-			//String msg = MessageSocket.receiveMessage(dstore, ControllerLogger.getInstance(), dstore);
 			
 			if (!MessageSocket.getOpcode(msg).equals(Protocol.LIST_TOKEN))
 				throw new IOException("Wrong Opcode received.");
@@ -190,9 +197,11 @@ public class RebalancingControllerServer implements Runnable
 				shuffled.put(dstoreF.getKey(), new MutableInt(dstoreF.getValue().length - numToRemove));
 			}
 			
-			
 			for (int j = 0; j < remaining; j++)
 			{
+				if (j >= filesToShuffle.size())
+					break;
+					
 				Map.Entry<String, ArrayList<Socket>> file = filesToShuffle.get(j);
 				
 				if (Arrays.asList(dstoreFile.getValue()).contains(file.getKey()))

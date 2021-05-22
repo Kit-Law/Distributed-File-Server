@@ -55,7 +55,7 @@ public class ClientMain {
 				for (String filename : list)
 					try { client.load(filename, downloadFolder); } catch(IOException e) { e.printStackTrace(); }
 			
-			/*for (int i = 0; i < list.length/4; i++) {
+			for (int i = 0; i < list.length/4; i++) {
 				String fileToRemove = list[random.nextInt(list.length)];
 				try {
 					client.remove(fileToRemove);
@@ -63,7 +63,7 @@ public class ClientMain {
 					System.out.println("Error remove file " + fileToRemove);
 					e.printStackTrace();
 				}
-			}*/
+			}
 			
 			try { list = list(client); } catch(IOException e) { e.printStackTrace(); }
 			
