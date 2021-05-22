@@ -33,6 +33,10 @@ public class Database
 	
 	public boolean isReplicatedRTimes(String filename, int R)
 	{
+		if (database.containsKey(filename) && database.get(filename).getState() == State.STORE_COMPLETE)
+		{
+			return true;
+		}
 		if (database.containsKey(filename) && database.get(filename).getStoreAcks() == R)
 		{
 			database.get(filename).resetStroeAcks();

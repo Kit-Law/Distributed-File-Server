@@ -31,18 +31,18 @@ public class DstoreController extends MessageClient implements Runnable
 	@Override
 	public void run()
 	{
-		try
-		{
-			sendMessage(Protocol.JOIN_TOKEN,  String.valueOf(port));
+		sendMessage(Protocol.JOIN_TOKEN,  String.valueOf(port));
 			
-			while (true)
+		while (true)
+		{
+			try
 			{
 				handleMessage();
 			}
+			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
+			catch (NoSuchFileException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, e.getFile()); }
+			catch (Exception e) { e.printStackTrace(); return; }
 		}
-		catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
-		catch (NoSuchFileException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
-		catch (Exception e) { e.printStackTrace(); }
 	}
 	
 	protected void handleMessage() throws IOException
