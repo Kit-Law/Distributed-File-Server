@@ -48,7 +48,7 @@ public class Controller extends MessageClient implements Runnable
 			catch (NotEnoughDstores e) { sendMessage(Protocol.ERROR_NOT_ENOUGH_DSTORES_TOKEN, ""); }
 			catch (SocketTimeoutException e) { e.printStackTrace(); return; }
 			catch (NullPointerException e) { return; }
-			catch (IOException e) { e.printStackTrace(); }
+			catch (IOException e) { e.printStackTrace(); return; }
 		}
 	}
 	

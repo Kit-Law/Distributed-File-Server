@@ -179,25 +179,48 @@ public class RebalancingControllerServer implements Runnable
 			
 			/** Fix this */
 			int remaining = min - (buffer.size() + dstoreFile.getValue().length);
-			ArrayList<Socket> shuffled = new ArrayList<>();
+			HashMap<Socket, MutableInt> shuffled = new HashMap<>();
+			
+			for (Map.Entry<Socket, String[]> dstoreF : dstoreFiles)
+			{
+				int numToRemove = 0;
+				if (toRemove.containsKey(dstoreF.getKey()))
+					numToRemove = toRemove.get(dstoreF.getKey()).size();
+				
+				shuffled.put(dstoreF.getKey(), new MutableInt(dstoreF.getValue().length - numToRemove));
+			}
+			
+			
 			for (int j = 0; j < remaining; j++)
 			{
 				Map.Entry<String, ArrayList<Socket>> file = filesToShuffle.get(j);
 				
+				if (Arrays.asList(dstoreFile.getValue()).contains(file.getKey()))
+				{
+					remaining++;
+					continue;
+				}
+				
+				boolean notChanged = true;
+				
 				for (Socket dstore : file.getValue())
 				{
-					if (!shuffled.contains(dstore))
+					if (shuffled.get(dstore).get() > min)
 					{
-						shuffled.add(dstore);
+						shuffled.get(dstore).decrement();
 						if (!toRemove.containsKey(dstore))
 							toRemove.put(dstore, new ArrayList<String>());
 						
 						toRemove.get(dstore).add(file.getKey());
 						buffer.add(file.getKey());
 						
+						notChanged = false;
 						break;
 					}
 				}
+				
+				if (notChanged)
+					remaining++;
 			}
 			/** Fix this */
 			
