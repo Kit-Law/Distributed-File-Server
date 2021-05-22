@@ -117,6 +117,10 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleListRequest() throws NotEnoughDstores
 	{
+		while (RebalancingControllerServer.isRebalancing)
+			try { Thread.sleep(10); }
+			catch (Exception e) { e.printStackTrace(); }
+		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
@@ -125,6 +129,10 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores, SocketException
 	{
+		while (RebalancingControllerServer.isRebalancing)
+			try { Thread.sleep(10); }
+			catch (Exception e) { e.printStackTrace(); }
+		
 		client.setSoTimeout(ControllerServer.getTimeout());
 		
 		if (!ControllerServer.hasEnoughDstores())
@@ -161,6 +169,10 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleLoadRequest(final String file) throws NotEnoughDstores, FileNotFoundException, SocketException
 	{
+		while (RebalancingControllerServer.isRebalancing)
+			try { Thread.sleep(10); }
+			catch (Exception e) { e.printStackTrace(); }
+		
 		client.setSoTimeout(ControllerServer.getTimeout());
 		
 		if (!ControllerServer.hasEnoughDstores())
@@ -185,6 +197,10 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException, SocketException
 	{
+		while (RebalancingControllerServer.isRebalancing)
+			try { Thread.sleep(10); }
+			catch (Exception e) { e.printStackTrace(); }
+		
 		client.setSoTimeout(ControllerServer.getTimeout());
 		
 		if (!ControllerServer.hasEnoughDstores())

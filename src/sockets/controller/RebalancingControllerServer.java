@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public class RebalancingControllerServer implements Runnable
 {
 	public static boolean rebalanceComplete;
-	public static boolean isRebalancing;
+	public static boolean isRebalancing = false;
 	public static boolean msgReceived;
 	public static String msg;
 	
