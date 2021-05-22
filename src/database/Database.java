@@ -37,7 +37,7 @@ public class Database
 		{
 			return true;
 		}
-		if (database.containsKey(filename) && database.get(filename).getStoreAcks() == R)
+		if (database.containsKey(filename) && database.get(filename).getStoreAcks() >= R)
 		{
 			database.get(filename).resetStroeAcks();
 			return true;
@@ -46,14 +46,14 @@ public class Database
 	}
 	public boolean isRemoved(String filename)
 	{
-		if (!database.containsKey(filename))
+		if (!database.containsKey(filename) || database.get(filename).getState() == State.REMOVE_COMPLETE)
 		{
 			return true;
 		}
 		if (database.containsKey(filename) &&
 				database.get(filename).getRemoveAcks() == database.get(filename).getDstorePorts().size())
 		{
-			database.get(filename).resetRemoveAcks(); //TODO: remove filename
+			//database.get(filename).resetRemoveAcks(); //TODO: remove filename
 			return true;
 		}
 		else return false;
@@ -91,6 +91,8 @@ public class Database
 		
 		return String.join(" ",  fileList);
 	}
+	
+	public void resetRemoveAcks(String file) { database.get(file).resetRemoveAcks(); }
 	
 	public synchronized boolean contains(String file) { return database.containsKey(file); }
 	public synchronized MetaData getMetaData(String file) { return database.get(file); }

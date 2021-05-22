@@ -13,6 +13,7 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.nio.file.FileAlreadyExistsException;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -42,6 +43,7 @@ public class Controller extends MessageClient implements Runnable
 			{
 				handleMessage();
 			}
+			catch (TimeoutException e) { System.err.println(e.getMessage()); }
 			catch (SocketException e) { if (port != null) ControllerServer.dstoreFailed(port); return; }
 			catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
 			catch (FileNotFoundException e) { sendMessage(Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN, ""); }
@@ -52,7 +54,7 @@ public class Controller extends MessageClient implements Runnable
 		}
 	}
 	
-	protected void handleMessage() throws IOException
+	protected void handleMessage() throws IOException, TimeoutException
 	{
 		String msg = receiveMessage();
 		String[] operand = MessageSocket.getOperand(msg);
@@ -183,7 +185,7 @@ public class Controller extends MessageClient implements Runnable
 		catch (IOException e) { sendMessage(Protocol.ERROR_LOAD_TOKEN, ""); }
 	}
 	
-	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException, SocketException
+	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException, SocketException, TimeoutException
 	{
 		client.setSoTimeout(ControllerServer.getTimeout());
 		
@@ -193,8 +195,11 @@ public class Controller extends MessageClient implements Runnable
 		if (!ControllerServer.getDatabase().contains(file))
 			throw new FileNotFoundException();
 		
-		if (ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_IN_PROGRESS)
+		if (ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_IN_PROGRESS &&
+				ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_COMPLETE)
 		{
+			ControllerServer.getDatabase().resetRemoveAcks(file);
+			
 			ControllerServer.getDatabase().updateFileState(file, State.REMOVE_IN_PROGRESS);
 			
 			for (Socket dstore : ControllerServer.getDStores(file))
@@ -207,9 +212,15 @@ public class Controller extends MessageClient implements Runnable
 			}
 		}
 		
+		long start = System.currentTimeMillis();
 		while (!ControllerServer.getDatabase().isRemoved(file))
+		{
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
+			
+			if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout())
+				throw new TimeoutException();
+		}
 		
 		ControllerServer.getDatabase().updateFileState(file, State.REMOVE_COMPLETE);
 		sendMessage(Protocol.REMOVE_COMPLETE_TOKEN, "");

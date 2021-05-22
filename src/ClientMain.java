@@ -20,7 +20,7 @@ public class ClientMain {
 		//testClient(cport, timeout, downloadFolder);
 		
 		// example to launch a number of concurrent clients, each doing the same operations
-		for (int i = 0; i < 2; i++) {
+		for (int i = 0; i < 10; i++) {
 			new Thread() {
 				public void run() {
 					test2Client(cport, timeout, downloadFolder, uploadFolder);
@@ -51,11 +51,11 @@ public class ClientMain {
 			String list[] = null;
 			try { list = list(client); } catch(IOException e) { e.printStackTrace(); }
 			
-			/*if (list != null)
+			if (list != null)
 				for (String filename : list)
-					try { client.load(filename, downloadFolder); } catch(IOException e) { e.printStackTrace(); }*/
+					try { client.load(filename, downloadFolder); } catch(IOException e) { e.printStackTrace(); }
 			
-			for (int i = 0; i < list.length/4; i++) {
+			/*for (int i = 0; i < list.length/4; i++) {
 				String fileToRemove = list[random.nextInt(list.length)];
 				try {
 					client.remove(fileToRemove);
@@ -63,7 +63,7 @@ public class ClientMain {
 					System.out.println("Error remove file " + fileToRemove);
 					e.printStackTrace();
 				}
-			}
+			}*/
 			
 			try { list = list(client); } catch(IOException e) { e.printStackTrace(); }
 			
