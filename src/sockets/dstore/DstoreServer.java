@@ -14,14 +14,15 @@ import java.util.stream.Stream;
 public class DstoreServer extends Server
 {
 	private static String file_folder;
-	
 	private static DstoreController controller;
+	private static int timeout;
 	
 	public DstoreServer(final int port, final int cport, final int timeout, final String file_folder)
 	{
 		super(port, timeout);
 		
 		DstoreServer.file_folder = file_folder;
+		DstoreServer.timeout = timeout;
 		
 		try
 		{
@@ -62,4 +63,6 @@ public class DstoreServer extends Server
 	public static void messageController(final String opcode, final String msg) { controller.sendMessage(opcode, msg); }
 	
 	public static String list() { return String.join(" ", Objects.requireNonNull(new File(file_folder).list())); }
+	
+	public static int getTimeout() { return timeout; }
 }

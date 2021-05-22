@@ -1,6 +1,7 @@
 package sockets.dstore;
 import constants.Protocol;
 import logger.DstoreLogger;
+import sockets.controller.ControllerServer;
 import sockets.message.MessageSocket;
 import sockets.message.MessageClient;
 import sockets.fileTransfer.FileReceiver;
@@ -66,6 +67,8 @@ public class Dstore extends MessageClient implements Runnable
 	
 	private void handleStoreRequest(final String filename, long filesize) throws IOException
 	{
+		client.setSoTimeout(DstoreServer.getTimeout());
+		
 		MessageSocket.sendMessage(Protocol.ACK_TOKEN, "", client, DstoreLogger.getInstance(), getSocket());
 		
 		FileReceiver.receive(client, Paths.get(DstoreServer.getFile_folder() + "/" + filename), filesize);
@@ -75,11 +78,15 @@ public class Dstore extends MessageClient implements Runnable
 	
 	private void handleLoadRequest(final String filename) throws IOException
 	{
-		FileSender.transfer(Paths.get("./" + DstoreServer.getFile_folder() + "/" + filename), client);
+		client.setSoTimeout(DstoreServer.getTimeout());
+		
+		FileSender.transfer(Paths.get( DstoreServer.getFile_folder() + "/" + filename), client);
 	}
 	
 	private void handleRebalanceStore(String filename, long filesize) throws IOException
 	{
+		client.setSoTimeout(DstoreServer.getTimeout());
+		
 		MessageSocket.sendMessage(Protocol.ACK_TOKEN, "", client, DstoreLogger.getInstance(), getSocket());
 		
 		FileReceiver.receive(client, Paths.get(DstoreServer.getFile_folder() + "/" + filename), filesize);

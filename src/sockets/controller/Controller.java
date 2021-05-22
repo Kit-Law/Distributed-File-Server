@@ -84,6 +84,9 @@ public class Controller extends MessageClient implements Runnable
 			case Protocol.REMOVE_ACK_TOKEN:
 				handleRemoveAck(operand[0]);
 				break;
+			case Protocol.ERROR_FILE_DOES_NOT_EXIST_TOKEN:
+				handleRemoveAck(operand[0]);
+				break;
 			case Protocol.REBALANCE_COMPLETE_TOKEN:
 				RebalancingControllerServer.rebalanceComplete = true;
 				break;
@@ -95,8 +98,6 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleDstoreConnect(Integer port) throws IOException
 	{
-		//client.setSoTimeout(999999999);
-		
 		this.port = port;
 		ControllerServer.addDStore(port, client);
 		ControllerLogger.getInstance().dstoreJoined(getSocket(), port);
@@ -122,16 +123,23 @@ public class Controller extends MessageClient implements Runnable
 		sendMessage(Protocol.LIST_TOKEN, ControllerServer.getDatabase().getFileList());
 	}
 	
-	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores
+	private void handleStoreRequest(final String file, final long filesize) throws FileAlreadyExistsException, FileNotFoundException, NotEnoughDstores, SocketException
 	{
+		client.setSoTimeout(ControllerServer.getTimeout());
+		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
 		ControllerServer.getDatabase().freeFile(file);
-		Integer[] dstorePorts = ControllerServer.getRdstores();
+		Integer[] dstorePorts;
 		
-		//Creates a new database entry
-		ControllerServer.getDatabase().newEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, dstorePorts));
+		synchronized (ControllerServer.getDatabase())
+		{
+			dstorePorts = ControllerServer.getRdstores();
+			
+			//Creates a new database entry
+			ControllerServer.getDatabase().newEntry(file, new MetaData(State.STORE_IN_PROGRESS, filesize, dstorePorts));
+		}
 		
 		//Send the ports to the client.
 		sendMessage(Protocol.STORE_TO_TOKEN, Stream.of(dstorePorts).map(Object::toString).collect(Collectors.joining(" ")));
@@ -142,6 +150,8 @@ public class Controller extends MessageClient implements Runnable
 		
 		sendMessage(Protocol.STORE_COMPLETE_TOKEN, "");
 		ControllerServer.getDatabase().updateFileState(file, State.STORE_COMPLETE);
+		
+		client.setSoTimeout(0);
 	}
 	
 	private void handleStoreAck(String filename)
@@ -149,8 +159,10 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.getDatabase().getMetaData(filename).incrementStoreAcks();
 	}
 	
-	private void handleLoadRequest(final String file) throws NotEnoughDstores, FileNotFoundException
+	private void handleLoadRequest(final String file) throws NotEnoughDstores, FileNotFoundException, SocketException
 	{
+		client.setSoTimeout(ControllerServer.getTimeout());
+		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
@@ -158,6 +170,8 @@ public class Controller extends MessageClient implements Runnable
 		ControllerServer.addLoad(client, port);
 		
 		sendMessage(Protocol.LOAD_FROM_TOKEN, port + " " + ControllerServer.getDatabase().getMetaData(file).getSize());
+		
+		client.setSoTimeout(0);
 	}
 	
 	private void handleReLoadRequest(String file) throws NotEnoughDstores, FileNotFoundException
@@ -169,20 +183,28 @@ public class Controller extends MessageClient implements Runnable
 		catch (IOException e) { sendMessage(Protocol.ERROR_LOAD_TOKEN, ""); }
 	}
 	
-	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException
+	private void handleRemoveRequest(final String file) throws NotEnoughDstores, FileNotFoundException, SocketException
 	{
+		client.setSoTimeout(ControllerServer.getTimeout());
+		
 		if (!ControllerServer.hasEnoughDstores())
 			throw new NotEnoughDstores();
 		
-		ControllerServer.getDatabase().updateFileState(file, State.REMOVE_IN_PROGRESS);
+		if (!ControllerServer.getDatabase().contains(file))
+			throw new FileNotFoundException();
 		
-		for (Socket dstore : ControllerServer.getDStores(file))
+		if (ControllerServer.getDatabase().getMetaData(file).getState() != State.REMOVE_IN_PROGRESS)
 		{
-			try
+			ControllerServer.getDatabase().updateFileState(file, State.REMOVE_IN_PROGRESS);
+			
+			for (Socket dstore : ControllerServer.getDStores(file))
 			{
-				MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore, ControllerLogger.getInstance(), getSocket());
+				try
+				{
+					MessageSocket.sendMessage(Protocol.REMOVE_TOKEN, file, dstore, ControllerLogger.getInstance(), getSocket());
+				}
+				catch (Exception e) { e.printStackTrace(); }
 			}
-			catch (Exception e) { e.printStackTrace(); }
 		}
 		
 		while (!ControllerServer.getDatabase().isRemoved(file))
@@ -191,6 +213,8 @@ public class Controller extends MessageClient implements Runnable
 		
 		sendMessage(Protocol.REMOVE_COMPLETE_TOKEN, "");
 		ControllerServer.getDatabase().updateFileState(file, State.REMOVE_COMPLETE);
+		
+		client.setSoTimeout(0);
 	}
 	
 	private void handleRemoveAck(String filename)

@@ -48,8 +48,8 @@ public class ControllerServer extends Server
 		new Thread(instance).start();
 	}
 	
-	public static void addLoad(Socket client, Integer port) { loads.put(client.getPort(), port); }
-	public static Integer reLoad(Socket client, String filename) throws IOException, FileNotFoundException
+	public static synchronized void addLoad(Socket client, Integer port) { loads.put(client.getPort(), port); }
+	public static synchronized Integer reLoad(Socket client, String filename) throws IOException, FileNotFoundException
 	{
 		if (!loads.contains(client.getPort()))
 			throw new IOException("ERROR_LOAD");
@@ -57,33 +57,33 @@ public class ControllerServer extends Server
 		return database.selectDStore(filename, 1);
 	}
 	
-	public static void addDStore(int port, Socket dstore) { dstores.put(port, dstore); }
+	public static synchronized void addDStore(int port, Socket dstore) { dstores.put(port, dstore); }
 	
-	public static void dstoreFailed(Integer port)
+	public static synchronized void dstoreFailed(Integer port)
 	{
 		database.dstoreFailed(port);
 		dstores.remove(port);
 		loads.remove(port);
 	}
 	
-	public static int getDStorePort(Socket dstore) throws IOException
+	public static synchronized int getDStorePort(Socket dstore) throws IOException
 	{
 		for (Map.Entry<Integer, Socket> buffer : dstores.entrySet())
 			if (buffer.getValue() == dstore) return buffer.getKey();
 			
 		throw new IOException("Socket not present");
 	}
-	public static Collection<Socket> getDStores()
+	public static synchronized Collection<Socket> getDStores()
 	{
 		return dstores.values();
 	}
-	public static Socket[] getDStores(String filename)
+	public static synchronized Socket[] getDStores(String filename)
 	{
 		return database.getMetaData(filename).getDstorePorts().stream()
 				.map((port) -> dstores.get(port)).toArray(Socket[]::new);
 	}
 	
-	public static Integer[] getRdstores()	//TODO: Fix this
+	public static synchronized Integer[] getRdstores()	//TODO: Fix this
 	{
 		HashMap<Integer, MutableInt> dstoreSize = new HashMap<>();
 		
@@ -99,10 +99,11 @@ public class ControllerServer extends Server
 		return sortedDStores.subList(0, R).stream().map(Map.Entry::getKey).toArray(Integer[]::new);
 	}
 	
-	public static boolean hasEnoughDstores() { return dstores.size() >= R; }
+	public static synchronized boolean hasEnoughDstores() { return dstores.size() >= R; }
 	
-	public static boolean isDstore(Socket client) { return dstores.containsValue(client); }
+	public static synchronized boolean isDstore(Socket client) { return dstores.containsValue(client); }
 	
 	public static int getR() { return R; }
-	public static Database getDatabase() { return database; }
+	public static int getTimeout() { return timeout; }
+	public static synchronized Database getDatabase() { return database; }
 }

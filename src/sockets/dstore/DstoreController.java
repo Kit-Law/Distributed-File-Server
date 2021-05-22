@@ -113,6 +113,6 @@ public class DstoreController extends MessageClient implements Runnable
 		for (i++; i < operand.length; i++)
 			Files.delete(Paths.get(DstoreServer.getFile_folder() + "/" + operand[i]));
 		
-		sendMessage(Protocol.REBALANCE_COMPLETE_TOKEN, "");
+		sendMessage(Protocol.REBALANCE_COMPLETE_TOKEN, "");	//TODO: update index
 	}
 }
