@@ -51,7 +51,7 @@ public class ControllerServer extends Server
 	public static synchronized void addLoad(Socket client, Integer port) { loads.put(client.getPort(), port); }
 	public static synchronized Integer reLoad(Socket client, String filename) throws IOException, FileNotFoundException
 	{
-		if (!loads.contains(client.getPort()))
+		if (!loads.containsValue(client.getPort()))
 			throw new IOException("ERROR_LOAD");
 		
 		return database.selectDStore(filename, 1);

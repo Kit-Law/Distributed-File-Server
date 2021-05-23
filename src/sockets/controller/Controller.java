@@ -98,13 +98,13 @@ public class Controller extends MessageClient implements Runnable
 	
 	private void handleDstoreConnect(Integer port)
 	{
-		this.port = port;
-		ControllerServer.addDStore(port, client);
-		ControllerLogger.getInstance().dstoreJoined(getSocket(), port);
-		
 		while (RebalancingControllerServer.isRebalancing)
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
+		
+		this.port = port;
+		ControllerServer.addDStore(port, client);
+		ControllerLogger.getInstance().dstoreJoined(getSocket(), port);
 		
 		new Thread(new RebalancingControllerServer()).start();
 	}
@@ -150,7 +150,7 @@ public class Controller extends MessageClient implements Runnable
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 			
-			if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout())
+			if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout() * ControllerServer.getR())
 				throw new TimeoutException();
 		}
 		
@@ -226,7 +226,7 @@ public class Controller extends MessageClient implements Runnable
 			try { Thread.sleep(10); }
 			catch (Exception e) { e.printStackTrace(); }
 			
-			if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout())
+			if ((System.currentTimeMillis() - start) >= ControllerServer.getTimeout() * ControllerServer.getR())
 				throw new TimeoutException();
 		}
 		

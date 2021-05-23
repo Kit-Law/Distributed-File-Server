@@ -72,11 +72,15 @@ public class DstoreController extends MessageClient implements Runnable
 		sendMessage(Protocol.LIST_TOKEN, DstoreServer.list());
 	}
 	
-	private void handleRemoveRequest(final String filename) throws IOException
+	private void handleRemoveRequest(final String filename)
 	{
-		Files.delete(Paths.get(DstoreServer.getFile_folder() + "/" + filename));
-		
-		sendMessage(Protocol.REMOVE_ACK_TOKEN, filename);
+		try
+		{
+			Files.delete(Paths.get(DstoreServer.getFile_folder() + "/" + filename));
+			
+			sendMessage(Protocol.REMOVE_ACK_TOKEN, filename);
+		}
+		catch (Exception e) { e.printStackTrace(); }
 	}
 	
 	private void handleRebalance(String[] operand) throws IOException

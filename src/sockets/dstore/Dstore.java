@@ -11,7 +11,9 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.nio.file.AccessDeniedException;
 import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Paths;
 
 public class Dstore extends MessageClient implements Runnable
@@ -38,6 +40,8 @@ public class Dstore extends MessageClient implements Runnable
 			handleMessage();
 		}
 		catch (FileAlreadyExistsException e) { sendMessage(Protocol.ERROR_FILE_ALREADY_EXISTS_TOKEN, ""); }
+		catch (NoSuchFileException e) { try { client.close(); } catch (IOException ex) { ex.printStackTrace(); } }
+		catch (AccessDeniedException e) { try { client.close(); } catch (IOException ex) { ex.printStackTrace(); } }
 		catch (Exception e) { e.printStackTrace(); }
 	}
 	

@@ -23,20 +23,20 @@ public class MetaData implements Serializable
 		this.dstorePorts.addAll(Arrays.asList(dstorePorts));
 	}
 	
-	public void addPort(int port) { if (!dstorePorts.contains(port)) dstorePorts.add(port); }
-	public void addPorts(ArrayList<Integer> toStore) { dstorePorts.addAll(toStore); }
-	public void removePort(int toRemove) { dstorePorts.removeIf(port -> port == toRemove); }
+	public synchronized void addPort(int port) { if (!dstorePorts.contains(port)) dstorePorts.add(port); }
+	public synchronized void addPorts(ArrayList<Integer> toStore) { dstorePorts.addAll(toStore); }
+	public synchronized void removePort(int toRemove) { dstorePorts.removeIf(port -> port == toRemove); }
 	
-	public void incrementStoreAcks() { storeAcks++; }
-	public void incrementRemoveAcks() { removeAcks++; }
-	public void resetStroeAcks() { storeAcks = 0; }
-	public void resetRemoveAcks() { removeAcks = 0; }
+	public synchronized void incrementStoreAcks() { storeAcks++; }
+	public synchronized void incrementRemoveAcks() { removeAcks++; }
+	public synchronized void resetStroeAcks() { storeAcks = 0; }
+	public synchronized void resetRemoveAcks() { removeAcks = 0; }
 	
-	public void setState(State state) { this.state = state; } //TODO: check this ageinets the old one
+	public synchronized void setState(State state) { this.state = state; } //TODO: check this ageinets the old one
 	
-	public State getState() { return state; }
+	public synchronized State getState() { return state; }
 	public long getSize() { return size; }
-	public ArrayList<Integer> getDstorePorts() { return dstorePorts; }
-	public int getStoreAcks() { return storeAcks; }
-	public int getRemoveAcks() { return removeAcks; }
+	public synchronized ArrayList<Integer> getDstorePorts() { return dstorePorts; }
+	public synchronized int getStoreAcks() { return storeAcks; }
+	public synchronized int getRemoveAcks() { return removeAcks; }
 }
